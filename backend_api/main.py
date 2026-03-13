@@ -66,12 +66,33 @@ async def update_lot(payload: DetectionPayload):
         raise HTTPException(status_code=500, detail="Failed to update database record.")
 
     # 4. Return success message
-    return {    
+    return {
         "status": "success",
         "lot_id": payload.lot_id,
         "new_available_spots": available_spots,
         "total_capacity": capacity
     }
+
+@app.get("/lots")
+async def get_all_lots():
+    """
+    Fetches all parking lots from Supabase.
+    Useful for the React Native app to display all available lots on a map/list.
+    """
+    response = supabase.table("parking_lots").select("*").execute()
+    return response.data
+
+@app.get("/lots/{lot_id}")
+async def get_lot(lot_id: str):
+    """
+    Fetches details for a specific parking lot.
+    """
+    response = supabase.table("parking_lots").select("*").eq("id", lot_id).execute()
+
+    if not response.data:
+        raise HTTPException(status_code=404, detail="Parking lot not found.")
+
+    return response.data[0]
 
 # Root endpoint for basic health check
 @app.get("/")
