@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from supabase import create_client, Client
 from typing import List, Dict
-from datetime import datetime
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -84,7 +84,7 @@ async def update_lot(payload: DetectionPayload):
     update_response = supabase.table("parking_lots") \
         .update({
             "available_spots": available_spots,
-            "last_updated": datetime.utcnow().isoformat()
+            "last_updated": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
         }) \
         .eq("id", payload.lot_id) \
         .execute()
