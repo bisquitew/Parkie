@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { colors, spacing, typography } from '../theme/colors';
+import { formatTimestamp } from '../lib/dataTransformer';
 
 export default function ParkingCard({ visible, parking, onClose }) {
   if (!parking) return null;
@@ -21,6 +22,9 @@ export default function ParkingCard({ visible, parking, onClose }) {
   };
 
   const statusColor = getStatusColor(parking.status);
+  const occupancyPercent = parking.capacity > 0 
+    ? Math.round((parking.occupied / parking.capacity) * 100) 
+    : 0;
 
   return (
     <Modal
@@ -60,6 +64,12 @@ export default function ParkingCard({ visible, parking, onClose }) {
             <Text style={styles.infoValue}>{parking.occupied}</Text>
           </View>
 
+          {/* Info Row 3: Occupancy Percentage */}
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Capacity</Text>
+            <Text style={styles.infoValue}>{occupancyPercent}%</Text>
+          </View>
+
           {/* Status Badge */}
           <View style={styles.statusBadgeContainer}>
             <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
@@ -68,6 +78,11 @@ export default function ParkingCard({ visible, parking, onClose }) {
               </Text>
             </View>
           </View>
+
+          {/* Last Updated */}
+          <Text style={styles.lastUpdated}>
+            Last scanned: {formatTimestamp(parking.lastUpdated)}
+          </Text>
 
           {/* Close Button */}
           <TouchableOpacity 
@@ -149,6 +164,13 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontWeight: 'bold',
     fontSize: typography.medium,
+  },
+  lastUpdated: {
+    fontSize: typography.small,
+    color: colors.secondary,
+    opacity: 0.7,
+    marginBottom: spacing.md,
+    textAlign: 'center',
   },
   closeButton: {
     position: 'absolute',
