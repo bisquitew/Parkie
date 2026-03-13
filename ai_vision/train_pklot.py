@@ -63,6 +63,7 @@ def train(data_yaml_path):
         batch      = BATCH_SIZE,
         name       = "parking_detector",
         exist_ok   = True,
+        resume     = False,     # Set to True if you manually copy the 'runs' folder
         verbose    = False,
     )
 
