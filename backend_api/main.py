@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from supabase import create_client, Client
-from typing import Optional
+from typing import List, Dict
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -35,14 +35,33 @@ class DetectionPayload(BaseModel):
     lot_id: str
     detected_cars: int
 
+def get_status_color(capacity: int, available_spots: int) -> str:
+    """
+    Calculates the marker color based on occupancy percentage:
+    - Below 70% occupied: green
+    - Between 70% and 85% occupied: yellow
+    - Above 85% occupied: red
+    """
+    if capacity <= 0:
+        return "gray"
+    
+    occupied = capacity - available_spots
+    occupancy_rate = (occupied / capacity) * 100
+    
+    if occupancy_rate < 70:
+        return "green"
+    elif occupancy_rate <= 85:
+        return "yellow"
+    else:
+        return "red"
+
 @app.post("/update_lot")
 async def update_lot(payload: DetectionPayload):
     """
     Accepts JSON with lot_id and detected_cars.
-    Calculates available_spots and updates the Supabase database.
+    Calculates available_spots, updates Supabase, and returns the new status.
     """
-    
-    # 1. Fetch the capacity for the given lot_id from Supabase
+    # Fetch capacity to calculate availability
     response = supabase.table("parking_lots").select("capacity").eq("id", payload.lot_id).execute()
     
     # Check if lot exists
@@ -51,48 +70,72 @@ async def update_lot(payload: DetectionPayload):
     
     capacity = response.data[0]["capacity"]
 
-    # 2. Calculate available spots: capacity - detected_cars
+    # Calculate available spots: capacity - detected_cars
     # Clamp the result at 0 to avoid negative values
     available_spots = max(0, capacity - payload.detected_cars)
 
-    # 3. Update the available_spots column in the Supabase table
+    # Update the available_spots column in the Supabase table
     update_response = supabase.table("parking_lots") \
         .update({"available_spots": available_spots}) \
         .eq("id", payload.lot_id) \
         .execute()
 
-    # Verify update success (optional but recommended for a hackathon)
+    # Verify update success
     if not update_response.data:
         raise HTTPException(status_code=500, detail="Failed to update database record.")
 
-    # 4. Return success message
+    # Return success message with the new color
     return {
         "status": "success",
         "lot_id": payload.lot_id,
-        "new_available_spots": available_spots,
-        "total_capacity": capacity
+        "available_spots": available_spots,
+        "status_color": get_status_color(capacity, available_spots)
     }
 
 @app.get("/lots")
 async def get_all_lots():
     """
-    Fetches all parking lots from Supabase.
-    Useful for the React Native app to display all available lots on a map/list.
+    Returns all parking lots with full details and color coding.
     """
     response = supabase.table("parking_lots").select("*").execute()
-    return response.data
+    lots = response.data
+    
+    for lot in lots:
+        lot["status_color"] = get_status_color(lot["capacity"], lot["available_spots"])
+        
+    return lots
+
+@app.get("/lots/colors")
+async def get_all_lot_colors() -> List[Dict[str, str]]:
+    """
+    Returns only the ID and status_color for every lot.
+    Perfect for updating map markers efficiently on the frontend.
+    """
+    response = supabase.table("parking_lots").select("id", "capacity", "available_spots").execute()
+    
+    colors_only = []
+    for lot in response.data:
+        colors_only.append({
+            "id": lot["id"],
+            "status_color": get_status_color(lot["capacity"], lot["available_spots"])
+        })
+        
+    return colors_only
 
 @app.get("/lots/{lot_id}")
 async def get_lot(lot_id: str):
     """
-    Fetches details for a specific parking lot.
+    Returns full details for a single parking lot by ID.
     """
     response = supabase.table("parking_lots").select("*").eq("id", lot_id).execute()
 
     if not response.data:
         raise HTTPException(status_code=404, detail="Parking lot not found.")
 
-    return response.data[0]
+    lot = response.data[0]
+    lot["status_color"] = get_status_color(lot["capacity"], lot["available_spots"])
+    
+    return lot
 
 # Root endpoint for basic health check
 @app.get("/")
