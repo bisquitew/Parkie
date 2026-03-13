@@ -1,0 +1,23 @@
+# Datasets
+pklot_dataset/
+
+# Media and Images
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.avi
+
+# ML Training Runs
+runs/
+*.pt
+
+# Python and Local Environment
+__pycache__/
+*.pyc
+.env
+.ipynb_checkpoints/
+
+# Assets
+# If you want to include specific models, you can un-ignore them like this:
+# !assets/parking_detector.pt
