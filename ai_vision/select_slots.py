@@ -2,37 +2,22 @@ import cv2
 import json
 import os
 import argparse
+import numpy as np
 
 # Global variables to store slot coordinates
 slots = []
-current_slot = None
-drawing = False
+current_poly = []
 
 def mouse_callback(event, x, y, flags, param):
-    global current_slot, drawing, slots
+    global current_poly, slots
 
     if event == cv2.EVENT_LBUTTONDOWN:
-        drawing = True
-        current_slot = [x, y, x, y]
-
-    elif event == cv2.EVENT_MOUSEMOVE:
-        if drawing:
-            current_slot[2] = x
-            current_slot[3] = y
-
-    elif event == cv2.EVENT_LBUTTONUP:
-        drawing = False
-        current_slot[2] = x
-        current_slot[3] = y
-        # Normalized coordinates (0.0 to 1.0) for resolution independence
-        x1, y1, x2, y2 = current_slot
-        # Ensure x1 < x2 and y1 < y2
-        x_min, x_max = min(x1, x2), max(x1, x2)
-        y_min, y_max = min(y1, y2), max(y1, y2)
+        current_poly.append([x, y])
         
-        # Store as pixel coordinates for now, we'll normalize on save
-        slots.append([x_min, y_min, x_max, y_max])
-        current_slot = None
+        if len(current_poly) == 4:
+            slots.append(current_poly)
+            current_poly = []
+            print(f"Slot {len(slots)} added.")
 
 def main():
     parser = argparse.ArgumentParser()
@@ -57,36 +42,46 @@ def main():
     cv2.namedWindow("Select Slots")
     cv2.setMouseCallback("Select Slots", mouse_callback)
 
-    print("\n--- Parking Slot Selector ---")
-    print("1. Click and drag to draw a box around a parking spot.")
+    print("\n--- Parking Slot Selector (Polygon Mode) ---")
+    print("1. Click 4 corners for each parking spot.")
     print("2. Press 'r' to reset (clear all slots).")
     print("3. Press 'c' to cancel and exit without saving.")
     print("4. Press 's' to save and exit.")
-    print("------------------------------\n")
+    print("--------------------------------------------\n")
 
     while True:
         temp_frame = clone.copy()
         
-        # Draw existing slots
-        for i, (x1, y1, x2, y2) in enumerate(slots):
-            cv2.rectangle(temp_frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
-            cv2.putText(temp_frame, f"Slot {i+1}", (x1, y1 - 10), 
+        # Draw existing slots (Polygons)
+        for i, poly in enumerate(slots):
+            pts = np.array(poly, np.int32).reshape((-1, 1, 2))
+            cv2.polylines(temp_frame, [pts], True, (0, 255, 0), 2)
+            cv2.putText(temp_frame, f"Slot {i+1}", tuple(poly[0]), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
 
-        # Draw current drawing box
-        if current_slot:
-            cv2.rectangle(temp_frame, (current_slot[0], current_slot[1]), 
-                          (current_slot[2], current_slot[3]), (0, 255, 255), 2)
+        # Draw currently being drawn polygon
+        if len(current_poly) > 0:
+            for pt in current_poly:
+                cv2.circle(temp_frame, tuple(pt), 4, (0, 255, 255), -1)
+            
+            if len(current_poly) > 1:
+                pts = np.array(current_poly, np.int32).reshape((-1, 1, 2))
+                cv2.polylines(temp_frame, [pts], False, (0, 255, 255), 2)
 
         cv2.imshow("Select Slots", temp_frame)
         key = cv2.waitKey(1) & 0xFF
 
         if key == ord("s"):
-            # Save slots
+            # Save slots in flat format [x1, y1, x2, y2, x3, y3, x4, y4] as per backend docs
+            flattened_slots = []
+            for poly in slots:
+                flat_poly = [coord for pt in poly for coord in pt]
+                flattened_slots.append(flat_poly)
+
             data = {
                 "video_source": args.video,
                 "resolution": [W, H],
-                "slots": slots
+                "slots": flattened_slots
             }
             os.makedirs(os.path.dirname(args.output), exist_ok=True)
             with open(args.output, "w") as f:

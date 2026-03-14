@@ -16,19 +16,25 @@ DEFAULT_MODEL = "yolov8s.pt"  # Upgraded to 'Small' model for better detection a
 # 2: car, 3: motorcycle, 5: bus, 7: truck
 COCO_VEHICLE_CLASSES = [2, 3, 5, 7]
 
-def calculate_iou(boxA, boxB):
-    # box = [x1, y1, x2, y2]
-    xA = max(boxA[0], boxB[0])
-    yA = max(boxA[1], boxB[1])
-    xB = min(boxA[2], boxB[2])
-    yB = min(boxA[3], boxB[3])
+def is_point_in_poly(point, poly):
+    # poly is a list of [x, y]
+    # point is (x, y)
+    pts = np.array(poly, np.int32).reshape((-1, 1, 2))
+    return cv2.pointPolygonTest(pts, (float(point[0]), float(point[1])), False) >= 0
 
-    interArea = max(0, xB - xA + 1) * max(0, yB - yA + 1)
-    boxAArea = (boxA[2] - boxA[0] + 1) * (boxA[3] - boxA[1] + 1)
+def calculate_poly_overlap(poly, box):
+    # poly: [[x1,y1], [x2,y2], [x3,y3], [x4,y4]]
+    # box: [x1, y1, x2, y2]
     
-    # We use "intersection over slot area" for occupancy
-    overlap = interArea / float(boxAArea)
-    return overlap
+    # Simple and robust for parking: 
+    # Check if the bottom-center of the car is in the polygon.
+    # This is much more robust for perspective than box-to-box IoU.
+    bx1, by1, bx2, by2 = box
+    bottom_center = ((bx1 + bx2) / 2, (by1 + by2) / 2) # Using center for skewed views
+    
+    if is_point_in_poly(bottom_center, poly):
+        return 1.0 # Fully occupied if center is in
+    return 0.0
 
 def main():
     parser = argparse.ArgumentParser()
@@ -39,6 +45,9 @@ def main():
     parser.add_argument("--conf", type=float, default=0.25)
     parser.add_argument("--iou", type=float, default=0.3, help="Overlap threshold for occupancy")
     parser.add_argument("--imgsz", type=int, default=640, help="Inference image size")
+    parser.add_argument("--skip-frames", type=int, default=0, help="Number of frames to skip between processing")
+    parser.add_argument("--interval", type=float, default=0, help="Seconds between detections (overrides skip-frames)")
+    parser.add_argument("--delay", type=int, default=1, help="Delay in ms after each frame")
     parser.add_argument("--debug", action="store_true", help="Draw raw model detections")
     args = parser.parse_args()
 
@@ -52,7 +61,7 @@ def main():
         slots_data = json.load(f)
     
     parking_slots = slots_data.get("slots", [])
-    print(f"Loaded {len(parking_slots)} parking slots.")
+    print(f"Loaded {len(parking_slots)} parking polygons.")
 
     # 2. Load Model
     print(f"Loading model: {args.model}")
@@ -60,7 +69,6 @@ def main():
     print("Model ready.")
 
     # Determine if we should filter by vehicle classes (COCO) or use all detections (PKLot)
-    # COCO models have 'car' at index 2. PKLot models are usually 0: empty, 1: occupied.
     is_coco = "yolo" in args.model.lower() and "parking_detector" not in args.model.lower()
     
     source = args.camera if args.camera is not None else args.video
@@ -71,14 +79,36 @@ def main():
 
     W = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     H = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = cap.get(cv2.CAP_PROP_FPS)
     
-    print(f"\nFeed: {W}x{H}  —  press Q to quit")
+    interval_frames = int(args.interval * fps) if args.interval > 0 else 0
+    
+    print(f"\nFeed: {W}x{H} @ {fps:.1f} FPS  —  press Q to quit")
+    if interval_frames > 0:
+        print(f"Interval mode: Detecting every {args.interval}s (~{interval_frames} frames)")
     print(f"Using {'COCO' if is_coco else 'Custom PKLot'} detection logic.")
+
+    import time
+    frame_count = 0
+    t_prev = time.time()
+    current_fps = 0
 
     while cap.isOpened():
         ok, frame = cap.read()
         if not ok:
             cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+            continue
+        
+        frame_count = int(cap.get(cv2.CAP_PROP_POS_FRAMES))
+        
+        # Interval Jumps (Time-based)
+        if interval_frames > 0:
+            # Jump to the next detection point
+            next_frame = frame_count + interval_frames
+            cap.set(cv2.CAP_PROP_POS_FRAMES, next_frame)
+        
+        # Skip frames (Count-based, fallback)
+        elif args.skip_frames > 0 and frame_count % (args.skip_frames + 1) != 0:
             continue
 
         # Inference
@@ -88,22 +118,16 @@ def main():
 
         occupied_count = 0
         
-        # Check each slot
+        # Check each slot (Polygon)
         slot_statuses = [] 
-        for i, slot in enumerate(parking_slots):
+        for i, poly in enumerate(parking_slots):
             is_occupied = False
             for det in detections:
                 det_box = det[:4] 
                 cls_id  = int(det[5])
                 
-                # Logic:
-                # If COCO: Any 'vehicle' detection overlapping the slot counts as occupied.
-                # If PKLot: Any detection labeled 'space-occupied' (usually cls 1) overlapping counts.
-                # If PKLot: We can also check if a 'detected slot' overlaps our 'manual slot'.
-                
-                overlap = calculate_iou(slot, det_box)
-                
-                if overlap > args.iou:
+                # Logic: If point-in-polygon is true, it's occupied
+                if calculate_poly_overlap(poly, det_box) > 0.5:
                     if not is_coco:
                         # For PKLot model, check if the label is 'occupied'
                         label = model.names[cls_id].lower()
@@ -114,7 +138,7 @@ def main():
                         is_occupied = True
                         break
             
-            slot_statuses.append((slot, is_occupied))
+            slot_statuses.append((poly, is_occupied))
             if is_occupied:
                 occupied_count += 1
 
@@ -127,36 +151,35 @@ def main():
                 cv2.putText(frame, f"RAW: {dcls_name} {dconf:.2f}", (int(dx1), int(dy1) - 5),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.35, (255, 255, 0), 1)
 
-        # Drawing
-        for (x1, y1, x2, y2), occupied in slot_statuses:
-            # Cast to int to ensure valid slicing and drawing
-            x1, y1, x2, y2 = int(x1), int(y1), int(x2), int(y2)
-            
+        # Drawing (OPTIMIZED BATCHED RENDERING)
+        overlay_mask = np.zeros(frame.shape, dtype=np.uint8)
+        for poly, occupied in slot_statuses:
+            pts = np.array(poly, np.int32).reshape((-1, 1, 2))
             color = (0, 0, 210) if occupied else (0, 210, 0)
             status_text = "OCCUPIED" if occupied else "FREE"
             
-            # Guard against zero-size ROIs (which would cause cv2 to return None)
-            if (x2 > x1) and (y2 > y1):
-                # Transparent Overlay
-                sub_img = frame[y1:y2, x1:x2]
-                overlay = np.full(sub_img.shape, color, dtype=np.uint8)
-                res = cv2.addWeighted(sub_img, 0.7, overlay, 0.3, 0)
-                if res is not None:
-                    frame[y1:y2, x1:x2] = res
-            
-            cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-            cv2.putText(frame, status_text, (x1 + 3, y1 + 15),
+            cv2.fillPoly(overlay_mask, [pts], color)
+            cv2.polylines(frame, [pts], True, color, 2)
+            cv2.putText(frame, status_text, (poly[0][0] + 3, poly[0][1] + 15),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
+
+        frame = cv2.addWeighted(frame, 1.0, overlay_mask, 0.3, 0)
+
+        # FPS calculation (only meaningful in non-interval mode)
+        t_now = time.time()
+        current_fps = 1.0 / (t_now - t_prev) if (t_now - t_prev) > 0 else 0
+        t_prev = t_now
 
         # HUD
         free_count = len(parking_slots) - occupied_count
+        mode_text = f"INTERVAL: {args.interval}s" if interval_frames > 0 else f"FPS: {current_fps:.1f}"
         cv2.rectangle(frame, (0, 0), (W, 40), (20, 20, 20), -1)
         cv2.putText(frame,
-                    f"FREE: {free_count}   OCCUPIED: {occupied_count}   TOTAL: {len(parking_slots)} [ROI Mode]",
+                    f"FREE: {free_count}   OCCUPIED: {occupied_count}   {mode_text}",
                     (15, 28), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
 
         cv2.imshow("Smart Parking Viewer", frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+        if cv2.waitKey(args.delay) & 0xFF == ord('q'):
             break
 
     cap.release()
