@@ -148,6 +148,7 @@ async def get_lot(lot_id: str):
     """
     Returns full details for a single parking lot by ID (UUID).
     """
+    # Verify lot exists
     response = supabase.table("parking_lots").select("*").eq("id", lot_id).execute()
 
     if not response.data:
@@ -158,16 +159,45 @@ async def get_lot(lot_id: str):
     
     return lot
 
+@app.post("/lots")
+async def create_lot(payload: LotSetupPayload):
+    """
+    Registers a new parking lot (Creation).
+    Initializes capacity and sets is_verified to false for admin review.
+    Returns the newly created lot_id.
+    """
+    capacity = payload.capacity if payload.capacity is not None else len(payload.slots_data)
+    
+    insert_response = supabase.table("parking_lots") \
+        .insert({
+            "name": payload.name,
+            "latitude": payload.latitude,
+            "longitude": payload.longitude,
+            "camera_url": payload.camera_url,
+            "slots_data": payload.slots_data,
+            "capacity": capacity,
+            "available_spots": capacity, # Initially all spots are free
+            "is_verified": False,
+            "last_updated": datetime.now(timezone.utc).isoformat()
+        }) \
+        .execute()
+
+    if not insert_response.data:
+        raise HTTPException(status_code=500, detail="Failed to create parking lot record.")
+
+    return {
+        "status": "success",
+        "lot_id": insert_response.data[0]["id"],
+        "message": "Lot registered successfully. Pending admin verification."
+    }
+
 @app.post("/lots/{lot_id}/setup")
 async def setup_lot(lot_id: str, payload: LotSetupPayload):
     """
-    Saves lot details, camera_url, and slots_data to the database for a specific lot.
-    Updates the capacity and sets is_verified to false for admin review.
+    Updates details for an existing lot (Re-configuration).
     """
-    # Use provided capacity or calculate from the number of slots
     capacity = payload.capacity if payload.capacity is not None else len(payload.slots_data)
     
-    # Update Supabase
     update_response = supabase.table("parking_lots") \
         .update({
             "name": payload.name,
@@ -176,22 +206,19 @@ async def setup_lot(lot_id: str, payload: LotSetupPayload):
             "camera_url": payload.camera_url,
             "slots_data": payload.slots_data,
             "capacity": capacity,
-            "is_verified": False, # Requires admin check
+            "is_verified": False, 
             "last_updated": datetime.now(timezone.utc).isoformat()
         }) \
         .eq("id", lot_id) \
         .execute()
 
     if not update_response.data:
-        raise HTTPException(status_code=404, detail=f"Parking lot with ID '{lot_id}' not found or update failed.")
+        raise HTTPException(status_code=404, detail=f"Parking lot with ID '{lot_id}' not found.")
 
     return {
         "status": "success",
         "lot_id": lot_id,
-        "name": payload.name,
-        "capacity": capacity,
-        "is_verified": False,
-        "message": "Lot setup successful. Pending admin verification."
+        "message": "Lot configuration updated. Pending admin re-verification."
     }
 
 @app.get("/lots/{lot_id}/config")
@@ -209,7 +236,6 @@ async def get_lot_config(lot_id: str):
 
     config = response.data[0]
     
-    # Validate that config is not empty (in case columns are null)
     if not config.get("camera_url") or not config.get("slots_data"):
         raise HTTPException(status_code=400, detail="Lot configuration is incomplete. Please run setup first.")
 

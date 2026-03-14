@@ -78,9 +78,9 @@ This FastAPI service acts as the "glue" between the **AI Vision** component (det
 
 ---
 
-### 5. Setup Parking Lot (`POST /lots/{lot_id}/setup`)
-**Used by:** Web Dashboard (Lot Owner).
-- **URL:** `/lots/{lot_id}/setup`
+### 5. Create/Register Parking Lot (`POST /lots`)
+**Used by:** Web Dashboard (Lot Owner - Initial registration).
+- **URL:** `/lots`
 - **Method:** `POST`
 - **Payload (JSON):**
   ```json
@@ -91,21 +91,30 @@ This FastAPI service acts as the "glue" between the **AI Vision** component (det
     "camera_url": "https://example.com/stream.m3u8",
     "slots_data": [
       [x1, y1, x2, y2, x3, y3, x4, y4],
-      [x1, y1, x2, y2, x3, y3, x4, y4]
+      ...
     ],
     "capacity": 100
   }
   ```
 - **Logic:**
-  1. Saves the lot `name`, coordinates (`latitude`, `longitude`), `camera_url`, and `slots_data`.
-  2. `slots_data` is an array of vectors, each containing **8 coordinates** (4 points: top-left, top-right, bottom-right, bottom-left) to support perspective-correct quadrilaterals.
-  3. Updates the lot's `capacity` (uses provided value or count of slots).
-  4. Sets `is_verified` to `false` (requires admin review).
-  5. Updates `last_updated`.
+  1. Creates a **new record** in the database.
+  2. Returns the generated `lot_id`.
+  3. Sets `is_verified` to `false` (requires admin review).
 
 ---
 
-### 6. Get Lot Configuration (`GET /lots/{lot_id}/config`)
+### 6. Setup/Update Existing Lot (`POST /lots/{lot_id}/setup`)
+**Used by:** Web Dashboard (Lot Owner - Re-configuration).
+- **URL:** `/lots/{lot_id}/setup`
+- **Method:** `POST`
+- **Payload (JSON):** Same as Creation.
+- **Logic:**
+  1. Updates an **existing record** by ID.
+  2. Sets `is_verified` to `false` (requires admin re-review).
+
+---
+
+### 7. Get Lot Configuration (`GET /lots/{lot_id}/config`)
 **Used by:** `ai_vision` script (Initial setup).
 - **URL:** `/lots/{lot_id}/config`
 - **Method:** `GET`
@@ -119,7 +128,7 @@ This FastAPI service acts as the "glue" between the **AI Vision** component (det
 
 ---
 
-### 7. Health Check (`GET /`)
+### 8. Health Check (`GET /`)
 - **URL:** `/`
 - **Method:** `GET`
 - **Response:** `{"message": "Parkie API is online!"}`
@@ -139,7 +148,7 @@ The `status_color` is calculated based on the **occupancy rate** (`occupied / ca
 ## 🛠️ Database Schema (Supabase)
 
 The `parking_lots` table should have the following columns:
-- `id`: `uuid` (Primary Key)
+- `id`: `uuid` (Primary Key - Auto-generated on Insert)
 - `name`: `text`
 - `capacity`: `int`
 - `available_spots`: `int`
