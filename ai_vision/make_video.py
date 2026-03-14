@@ -1,75 +1,73 @@
 """
-Browse and convert PKLot dataset images into test videos.
-Lists available cameras/splits so you can pick which one to use.
+Convert any YOLOv8-format dataset split into a test video.
 
 Usage:
-    python make_video.py --list                          # see what's available
-    python make_video.py --camera 2 --split val          # make video from cam2 val set
-    python make_video.py --all                           # one video per camera
+    python make_video.py --list                                         # see all available datasets + splits
+    python make_video.py --dataset cnrpark_dataset --split test         # CNRPark test set (unseen data)
+    python make_video.py --dataset pklot_dataset --split test           # PKLot test set
+    python make_video.py --dataset cnrpark_dataset --split test --max 500
 """
 
 import cv2
 import glob
 import os
 import argparse
+import numpy as np
 from pathlib import Path
 from collections import defaultdict
 
-DATASET_DIR = "pklot_dataset"
-OUTPUT_DIR  = "assets"
-FPS         = 10
+OUTPUT_DIR = "assets"
+FPS        = 10
 
 
-def find_images():
-    """Scan dataset and group images by inferred camera/source."""
-    all_images = sorted(glob.glob(f"{DATASET_DIR}/**/*.jpg", recursive=True))
+def find_datasets():
+    """Find all YOLOv8-format dataset folders in the current directory."""
+    datasets = {}
+    for d in Path(".").iterdir():
+        if not d.is_dir():
+            continue
+        splits = {}
+        for split in ["train", "valid", "val", "test"]:
+            img_dir = d / split / "images"
+            if img_dir.exists():
+                imgs = list(img_dir.glob("*.jpg")) + list(img_dir.glob("*.png"))
+                if imgs:
+                    splits[split] = sorted([str(p) for p in imgs])
+        if splits:
+            datasets[d.name] = splits
+    return datasets
 
-    # Group by split (train/val/test) and try to detect sub-cameras
-    groups = defaultdict(list)
-    for p in all_images:
-        parts = Path(p).parts
-        # parts like: pklot_dataset/train/images/filename.jpg
-        split = parts[1] if len(parts) > 2 else "unknown"
-        groups[split].append(p)
 
-    return groups, all_images
-
-
-def list_available(groups):
-    print(f"\nDataset: {DATASET_DIR}/")
-    print(f"{'Split':<12} {'Images':>8}")
-    print("─" * 25)
-    total = 0
-    for split, imgs in sorted(groups.items()):
-        print(f"{split:<12} {len(imgs):>8}")
-        total += len(imgs)
-    print("─" * 25)
-    print(f"{'TOTAL':<12} {total:>8}")
+def list_available(datasets):
+    if not datasets:
+        print("No YOLOv8 datasets found in current directory.")
+        return
     print()
-    print("Usage examples:")
-    print("  python make_video.py --split train --max 300 --output assets/train_video.mp4")
-    print("  python make_video.py --split val   --max 200 --output assets/val_video.mp4")
-    print("  python make_video.py --split test  --max 200 --output assets/test_video.mp4")
-    print("  python make_video.py --all")
+    for ds_name, splits in sorted(datasets.items()):
+        print(f"  {ds_name}/")
+        for split, imgs in sorted(splits.items()):
+            print(f"    --split {split:<8}  ({len(imgs)} images)")
+        print()
+    print("Example:")
+    first_ds   = next(iter(datasets))
+    first_split = next(iter(datasets[first_ds]))
+    print(f"  python make_video.py --dataset {first_ds} --split {first_split}")
 
 
 def make_video(images, output_path, fps=FPS, max_frames=None):
     if not images:
-        print(f"No images found."); return
+        print("No images found."); return
 
-    if max_frames:
-        # Sample evenly so you get coverage across the full set, not just the start
-        import numpy as np
-        indices = np.linspace(0, len(images)-1, min(max_frames, len(images)), dtype=int)
+    if max_frames and len(images) > max_frames:
+        indices = np.linspace(0, len(images)-1, max_frames, dtype=int)
         images  = [images[i] for i in indices]
 
-    # Read first frame to get dimensions
     first = cv2.imread(images[0])
     if first is None:
         print(f"Cannot read: {images[0]}"); return
     h, w = first.shape[:2]
 
-    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+    os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
     out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
 
     print(f"Writing {len(images)} frames → {output_path}")
@@ -77,7 +75,6 @@ def make_video(images, output_path, fps=FPS, max_frames=None):
         frame = cv2.imread(p)
         if frame is None:
             continue
-        # Resize if inconsistent sizes in dataset
         if frame.shape[:2] != (h, w):
             frame = cv2.resize(frame, (w, h))
         out.write(frame)
@@ -86,45 +83,47 @@ def make_video(images, output_path, fps=FPS, max_frames=None):
 
     out.release()
     print(f"\nDone → {output_path}  ({w}×{h} @ {fps}fps)")
+    print(f"Test: python smart_parking.py --video {output_path}")
 
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--list",   action="store_true", help="List available splits")
-    parser.add_argument("--split",  default="val", choices=["train","val","test"])
-    parser.add_argument("--output", default=None)
-    parser.add_argument("--max",    type=int, default=300, help="Max frames in video")
-    parser.add_argument("--fps",    type=int, default=FPS)
-    parser.add_argument("--all",    action="store_true", help="Make one video per split")
+    parser.add_argument("--list",    action="store_true")
+    parser.add_argument("--dataset", default=None)
+    parser.add_argument("--split",   default="test")
+    parser.add_argument("--output",  default=None)
+    parser.add_argument("--max",     type=int, default=400)
+    parser.add_argument("--fps",     type=int, default=FPS)
     args = parser.parse_args()
 
-    groups, _ = find_images()
+    datasets = find_datasets()
 
-    if not groups:
-        print(f"No images found in {DATASET_DIR}/")
-        print("Run train_pklot.py first to download the dataset.")
+    if args.list or args.dataset is None:
+        list_available(datasets)
         return
 
-    if args.list or (not args.all and not args.split):
-        list_available(groups)
+    if args.dataset not in datasets:
+        print(f"Dataset not found: {args.dataset}")
+        print(f"Available: {list(datasets.keys())}")
         return
 
-    if args.all:
-        for split, imgs in sorted(groups.items()):
-            out = f"{OUTPUT_DIR}/{split}_video.mp4"
-            make_video(imgs, out, args.fps, args.max)
+    splits = datasets[args.dataset]
+
+    # Accept both "val" and "valid" spellings
+    split = args.split
+    if split not in splits and split == "val" and "valid" in splits:
+        split = "valid"
+    elif split not in splits and split == "valid" and "val" in splits:
+        split = "val"
+
+    if split not in splits:
+        print(f"Split '{args.split}' not found in {args.dataset}/")
+        print(f"Available splits: {list(splits.keys())}")
         return
 
-    imgs = groups.get(args.split, [])
-    if not imgs:
-        print(f"No images found for split: {args.split}")
-        list_available(groups)
-        return
-
-    output = args.output or f"{OUTPUT_DIR}/{args.split}_video.mp4"
-    make_video(imgs, output, args.fps, args.max)
-    print(f"\nTest with:")
-    print(f"  python smart_parking.py --video {output}")
+    images = splits[split]
+    output = args.output or f"{OUTPUT_DIR}/{args.dataset}_{split}_video.mp4"
+    make_video(images, output, args.fps, args.max)
 
 
 if __name__ == "__main__":

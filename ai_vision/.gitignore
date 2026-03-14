@@ -1,5 +1,8 @@
 # Datasets
 pklot_dataset/
+cnrpark_dataset/
+CNR-EXT_FULL_IMAGE_1000x750/
+*.tar
 
 # Media and Images
 *.jpg
@@ -17,7 +20,11 @@ __pycache__/
 *.pyc
 .env
 .ipynb_checkpoints/
+venv/
 
 # Assets
 # If you want to include specific models, you can un-ignore them like this:
-# !assets/parking_detector.pt
+!assets/parking_detector.pt
+
+# Training configs
+finetune_data.yaml

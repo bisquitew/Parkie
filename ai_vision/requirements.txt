@@ -3,3 +3,4 @@ opencv-python==4.10.0.84
 python-dotenv
 requests
 inference-sdk
+roboflow

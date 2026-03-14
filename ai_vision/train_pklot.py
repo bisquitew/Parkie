@@ -1,87 +1,129 @@
 """
-Downloads PKLot dataset from Roboflow and trains a YOLOv8n model on it.
-Produces assets/parking_detector.pt — a fully local model, no API needed at runtime.
+Fine-tunes an existing PKLot-trained model on CNRPark only.
+Starts from your already-trained weights instead of scratch —
+no redundant re-training on PKLot data.
 
 Requirements:
-    pip install ultralytics roboflow python-dotenv
+    pip install ultralytics roboflow python-dotenv pyyaml
 
-Your .env needs:
-    ROBOFLOW_API_KEY=your_key_here   # free at roboflow.com — only needed for download
+.env:
+    ROBOFLOW_API_KEY=your_key_here
 
 Run:
     python train_pklot.py
-
-Output:
-    assets/parking_detector.pt     ← use this in smart_parking.py
 """
 
 import os
 import shutil
+import yaml
 from pathlib import Path
 from dotenv import load_dotenv
 
 load_dotenv()
 
-ROBOFLOW_API_KEY = os.getenv("ROBOFLOW_API_KEY", "")
-OUTPUT_MODEL     = "assets/parking_detector.pt"
-DATASET_DIR      = "pklot_dataset"
-EPOCHS           = 25       # 25 is enough for ~95%+ mAP on PKLot
-IMAGE_SIZE       = 640
-BATCH_SIZE       = 16       # lower to 8 if you get out-of-memory errors
+ROBOFLOW_API_KEY  = os.getenv("ROBOFLOW_API_KEY", "")
+EXISTING_WEIGHTS  = "assets/parking_detector.pt"   # your already-trained PKLot model
+OUTPUT_MODEL      = "assets/parking_detector.pt"   # overwrite with improved model
+PKLOT_DIR         = "pklot_dataset"
+CNR_DIR           = "cnrpark_dataset"
+FINETUNE_YAML     = "finetune_data.yaml"
+
+# Fewer epochs + lower LR for fine-tuning — we're adjusting, not relearning
+EPOCHS            = 20
+IMAGE_SIZE        = 640
+BATCH_SIZE        = 32
+LEARNING_RATE     = 0.0005   # ~10x lower than default — prevents overwriting PKLot knowledge
 
 
-def download_dataset():
-    """Download PKLot dataset in YOLOv8 format from Roboflow."""
+def download_cnrpark():
+    if Path(CNR_DIR).exists():
+        print(f"CNRPark already downloaded, skipping.")
+        return
     if not ROBOFLOW_API_KEY:
         raise SystemExit(
             "ROBOFLOW_API_KEY not set in .env\n"
-            "Get a free key at roboflow.com — only needed once for download."
+            "Get a free key at roboflow.com"
         )
-
-    print("Downloading PKLot dataset from Roboflow...")
     from roboflow import Roboflow
     rf      = Roboflow(api_key=ROBOFLOW_API_KEY)
-    project = rf.workspace("brad-dwyer").project("pklot-1tros")
-    version = project.version(1)
-    dataset = version.download("yolov8", location=DATASET_DIR)
-    print(f"Dataset saved to: {DATASET_DIR}/")
-    return dataset.location
+    project = rf.workspace("university-projects-z0rtf").project("cnrpark-ext")
+    project.version(1).download("yolov8", location=CNR_DIR)
+    print(f"Downloaded → {CNR_DIR}/")
 
 
-def train(data_yaml_path):
-    """Fine-tune YOLOv8n on PKLot. Starts from COCO pretrained weights."""
+def build_finetune_yaml():
+    """
+    Train only on CNRPark images.
+    Validate on both PKLot + CNRPark so we can see if PKLot accuracy is preserved.
+    """
+    config = {
+        "path": ".",
+        "train": [
+            f"{CNR_DIR}/train/images",    # new data only
+        ],
+        "val": [
+            f"{PKLOT_DIR}/valid/images",  # watch for regression on original data
+            f"{CNR_DIR}/valid/images",    # and improvement on new data
+        ],
+        "nc": 2,
+        "names": ["space-empty", "space-occupied"],
+    }
+    with open(FINETUNE_YAML, "w") as f:
+        yaml.dump(config, f, default_flow_style=False)
+    print(f"Fine-tune config → {FINETUNE_YAML}")
+
+
+def finetune():
     from ultralytics import YOLO
+    import torch
 
-    print(f"\nTraining YOLOv8n for {EPOCHS} epochs on PKLot...")
-    print("This takes ~10 min on GPU, ~30 min on CPU.\n")
+    if not torch.cuda.is_available():
+        raise SystemExit(
+            "CUDA not available.\n"
+            "Fix: pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121"
+        )
 
-    model   = YOLO("yolov8n.pt")   # start from COCO pretrained
+    if not Path(EXISTING_WEIGHTS).exists():
+        raise SystemExit(
+            f"Existing weights not found: {EXISTING_WEIGHTS}\n"
+            "Copy your trained model to assets/parking_detector.pt first."
+        )
+
+    gpu  = torch.cuda.get_device_name(0)
+    vram = torch.cuda.get_device_properties(0).total_memory / 1e9
+    print(f"\nGPU: {gpu} ({vram:.1f} GB VRAM)")
+    print(f"Fine-tuning from: {EXISTING_WEIGHTS}")
+    print(f"New data: CNRPark only ({EPOCHS} epochs, lr={LEARNING_RATE})\n")
+
+    # Load YOUR weights, not the generic yolov8s.pt
+    model   = YOLO(EXISTING_WEIGHTS)
     results = model.train(
-        data       = data_yaml_path,
-        epochs     = EPOCHS,
-        imgsz      = IMAGE_SIZE,
-        batch      = BATCH_SIZE,
-        name       = "parking_detector",
-        exist_ok   = True,
-        resume     = False,     # Set to True if you manually copy the 'runs' folder
-        verbose    = False,
+        data      = FINETUNE_YAML,
+        epochs    = EPOCHS,
+        imgsz     = IMAGE_SIZE,
+        batch     = BATCH_SIZE,
+        name      = "parking_detector_finetuned",
+        exist_ok  = True,
+        device    = 0,
+        cache     = "ram",
+        workers   = 8,
+        amp       = True,
+        cos_lr    = True,
+        optimizer = "AdamW",
+        lr0       = LEARNING_RATE,   # low LR = gentle adjustment, preserves PKLot knowledge
+        lrf       = 0.1,             # final LR = lr0 * lrf
+        freeze    = 10,              # freeze first 10 backbone layers — only train the head
+                                     # this is the key to not forgetting PKLot
     )
 
-    # Copy best weights to assets/
-    best_weights = Path(results.save_dir) / "weights" / "best.pt"
+    best = Path(results.save_dir) / "weights" / "best.pt"
     os.makedirs("assets", exist_ok=True)
-    shutil.copy(best_weights, OUTPUT_MODEL)
-    print(f"\nDone! Model saved → {OUTPUT_MODEL}")
-    print(f"Run: python smart_parking.py --video assets/demo_video.mp4")
-    return OUTPUT_MODEL
+    shutil.copy(best, OUTPUT_MODEL)
+    print(f"\nDone! Updated model saved → {OUTPUT_MODEL}")
+    print(f"Test: python smart_parking.py --video assets/val_video.mp4")
 
 
 if __name__ == "__main__":
-    # Skip download if dataset already exists
-    yaml_path = Path(DATASET_DIR) / "data.yaml"
-    if yaml_path.exists():
-        print(f"Dataset already exists at {DATASET_DIR}/, skipping download.")
-    else:
-        download_dataset()
-
-    train(str(yaml_path))
+    download_cnrpark()
+    build_finetune_yaml()
+    finetune()
