@@ -36,6 +36,11 @@ class DetectionPayload(BaseModel):
     lot_id: str  # This is the UUID
     detected_cars: int
 
+# Pydantic Model for the lot setup from the web dashboard
+class LotSetupPayload(BaseModel):
+    camera_url: str
+    slots_data: List[List[int]]
+
 def get_status_color(capacity: int, available_spots: int) -> str:
     """
     Calculates the marker color based on occupancy percentage:
@@ -148,6 +153,57 @@ async def get_lot(lot_id: str):
     lot["status_color"] = get_status_color(lot["capacity"], lot["available_spots"])
     
     return lot
+
+@app.post("/lots/{lot_id}/setup")
+async def setup_lot(lot_id: str, payload: LotSetupPayload):
+    """
+    Saves camera_url and slots_data to the database for a specific lot.
+    Updates the capacity based on the number of slots provided.
+    """
+    # Calculate capacity from the number of slots
+    capacity = len(payload.slots_data)
+    
+    # Update Supabase
+    update_response = supabase.table("parking_lots") \
+        .update({
+            "camera_url": payload.camera_url,
+            "slots_data": payload.slots_data,
+            "capacity": capacity,
+            "last_updated": datetime.now(timezone.utc).isoformat()
+        }) \
+        .eq("id", lot_id) \
+        .execute()
+
+    if not update_response.data:
+        raise HTTPException(status_code=404, detail=f"Parking lot with ID '{lot_id}' not found or update failed.")
+
+    return {
+        "status": "success",
+        "lot_id": lot_id,
+        "capacity": capacity,
+        "camera_url": payload.camera_url
+    }
+
+@app.get("/lots/{lot_id}/config")
+async def get_lot_config(lot_id: str):
+    """
+    Returns the camera_url and slots_data for the YOLO AI script.
+    """
+    response = supabase.table("parking_lots") \
+        .select("camera_url", "slots_data") \
+        .eq("id", lot_id) \
+        .execute()
+
+    if not response.data:
+        raise HTTPException(status_code=404, detail=f"Parking lot with ID '{lot_id}' not found.")
+
+    config = response.data[0]
+    
+    # Validate that config is not empty (in case columns are null)
+    if not config.get("camera_url") or not config.get("slots_data"):
+        raise HTTPException(status_code=400, detail="Lot configuration is incomplete. Please run setup first.")
+
+    return config
 
 # Root endpoint for basic health check
 @app.get("/")

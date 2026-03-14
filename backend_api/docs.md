@@ -78,7 +78,39 @@ This FastAPI service acts as the "glue" between the **AI Vision** component (det
 
 ---
 
-### 5. Health Check (`GET /`)
+### 5. Setup Parking Lot (`POST /lots/{lot_id}/setup`)
+**Used by:** Web Dashboard.
+- **URL:** `/lots/{lot_id}/setup`
+- **Method:** `POST`
+- **Payload (JSON):**
+  ```json
+  {
+    "camera_url": "https://example.com/stream.m3u8",
+    "slots_data": [[627, 495, 678, 565], [580, 505, 624, 563]]
+  }
+  ```
+- **Logic:**
+  1. Saves the `camera_url` and `slots_data` (bounding boxes) to Supabase.
+  2. Updates the lot's `capacity` based on the number of slots in `slots_data`.
+  3. Updates `last_updated`.
+
+---
+
+### 6. Get Lot Configuration (`GET /lots/{lot_id}/config`)
+**Used by:** `ai_vision` script (Initial setup).
+- **URL:** `/lots/{lot_id}/config`
+- **Method:** `GET`
+- **Response:**
+  ```json
+  {
+    "camera_url": "https://example.com/stream.m3u8",
+    "slots_data": [[627, 495, 678, 565], ...]
+  }
+  ```
+
+---
+
+### 7. Health Check (`GET /`)
 - **URL:** `/`
 - **Method:** `GET`
 - **Response:** `{"message": "Parkie API is online!"}`
