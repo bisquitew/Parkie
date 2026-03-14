@@ -7,6 +7,7 @@ import BottomNavBar from '../components/BottomNavBar';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
 import NearbySearch from '../components/NearbySearch';
+import * as Location from 'expo-location';
 import { colors } from '../theme/colors';
 import { apiService } from '../lib/api';
 import { transformLotsData, transformLotData } from '../lib/dataTransformer';
@@ -21,6 +22,7 @@ export default function HomeScreen() {
   const [error, setError] = useState(null);
   const [searchVisible, setSearchVisible] = useState(false);
   const [destinationCoord, setDestinationCoord] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
 
   const fetchParkingLots = async () => {
     try {
@@ -81,6 +83,25 @@ export default function HomeScreen() {
     return () => {
       supabase.removeChannel(subscription);
     };
+  }, []);
+
+  // Fetch user location for search biasing
+  useEffect(() => {
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') return;
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        setUserLocation({
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        });
+      } catch (e) {
+        console.warn('Could not get user location for search bias:', e);
+      }
+    })();
   }, []);
 
   const handleManualRetry = () => {
@@ -144,6 +165,7 @@ export default function HomeScreen() {
         <NearbySearch
           visible={searchVisible}
           parkingLots={parkingLots}
+          userLocation={userLocation}
           onClose={() => setSearchVisible(false)}
           onLotSelect={handleLotSelect}
           onSearchComplete={handleSearchComplete}

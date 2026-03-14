@@ -57,12 +57,25 @@ function rankLots(lots, destLat, destLon, radiusMeters = 500) {
 }
 
 // ─── Nominatim autocomplete (OpenStreetMap, no API key) ──────────────────────
-async function fetchSuggestions(query) {
+async function fetchSuggestions(query, userLocation) {
   if (!query || query.trim().length < 3) return [];
   const encoded = encodeURIComponent(query.trim());
-  const url = `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=6&addressdetails=1`;
+
+  // Build location-biased URL: viewbox ±0.5° (~50km) around user
+  let locationParams = '';
+  if (userLocation?.latitude && userLocation?.longitude) {
+    const delta = 0.5;
+    const west = userLocation.longitude - delta;
+    const south = userLocation.latitude - delta;
+    const east = userLocation.longitude + delta;
+    const north = userLocation.latitude + delta;
+    // viewbox biases results toward this area; bounded=0 still allows global results but ranks nearby higher
+    locationParams = `&viewbox=${west},${north},${east},${south}&bounded=0`;
+  }
+
+  const url = `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&limit=6&addressdetails=1${locationParams}`;
   const res = await fetch(url, {
-    headers: { 'Accept-Language': 'en', 'User-Agent': 'ParkieApp/1.0' },
+    headers: { 'User-Agent': 'ParkieApp/1.0' },
   });
   const data = await res.json();
   return data.map((item) => ({
@@ -96,7 +109,7 @@ function LotRow({ lot, index, onSelect }) {
 }
 
 // ─── Main Component ───────────────────────────────────────────────────────────
-export default function NearbySearch({ visible, parkingLots, onClose, onLotSelect, onSearchComplete }) {
+export default function NearbySearch({ visible, parkingLots, userLocation, onClose, onLotSelect, onSearchComplete }) {
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
@@ -119,7 +132,7 @@ export default function NearbySearch({ visible, parkingLots, onClose, onLotSelec
     setSuggestionsLoading(true);
     debounceRef.current = setTimeout(async () => {
       try {
-        const s = await fetchSuggestions(query);
+        const s = await fetchSuggestions(query, userLocation);
         setSuggestions(s);
       } catch (e) {
         console.warn('Suggestion fetch failed:', e);
