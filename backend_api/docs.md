@@ -138,14 +138,25 @@ The `status_color` is calculated based on the **occupancy rate** (`occupied / ca
 
 ## 🛠️ Database Schema (Supabase)
 
-The `parking_lots` table should have the following columns:
-- `id`: `uuid` (Primary Key)
-- `name`: `text`
-- `capacity`: `int`
-- `available_spots`: `int`
-- `last_updated`: `timestamptz`
-- `camera_url`: `text` (URL for the live feed)
-- `slots_data`: `jsonb` (Array of 8-coordinate vectors [x1, y1, x2, y2, x3, y3, x4, y4])
-- `latitude`: `float8` (GPS Latitude)
-- `longitude`: `float8` (GPS Longitude)
-- `is_verified`: `boolean` (Default: false, for admin review)
+🛠️ Database Schema (Supabase)
+users Table
+This table stores the account details for parking lot owners.
+id: uuid (Primary Key)
+name: text
+email: text (Unique)
+password: text (Hashed password)
+created_at: timestamptz (Default: now())
+
+parking_lots Table
+This table stores the configuration and live data for each parking lot, linked to its owner.
+id: uuid (Primary Key)
+owner_id: uuid (Foreign Key referencing users.id)
+name: text
+capacity: int
+available_spots: int
+last_updated: timestamptz
+camera_url: text (URL for the live feed)
+slots_data: jsonb (Array of 8-coordinate vectors [x1, y1, x2, y2, x3, y3, x4, y4])
+latitude: float8 (GPS Latitude)
+longitude: float8 (GPS Longitude)
+is_verified: boolean (Default: false, for admin review)
