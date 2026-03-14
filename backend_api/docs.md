@@ -168,14 +168,3 @@ slots_data: jsonb (Array of 8-coordinate vectors [x1, y1, x2, y2, x3, y3, x4, y4
 latitude: float8 (GPS Latitude)
 longitude: float8 (GPS Longitude)
 is_verified: boolean (Default: false, for admin review)
-The `parking_lots` table should have the following columns:
-- `id`: `uuid` (Primary Key - Auto-generated on Insert)
-- `name`: `text`
-- `capacity`: `int`
-- `available_spots`: `int`
-- `last_updated`: `timestamptz`
-- `camera_url`: `text` (URL for the live feed)
-- `slots_data`: `jsonb` (Array of 8-coordinate vectors [x1, y1, x2, y2, x3, y3, x4, y4])
-- `latitude`: `float8` (GPS Latitude)
-- `longitude`: `float8` (GPS Longitude)
-- `is_verified`: `boolean` (Default: false, for admin review)
