@@ -39,6 +39,9 @@ export const apiService = {
     try {
       return await retryFetch(() =>
         fetch(`${API_CONFIG.BASE_URL}/`, {
+          headers: {
+            'ngrok-skip-browser-warning': 'true',
+          },
           timeout: API_CONFIG.TIMEOUT
         })
       );
@@ -59,6 +62,7 @@ export const apiService = {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true',
           }
         })
       );
@@ -79,6 +83,7 @@ export const apiService = {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true',
           }
         })
       );
@@ -99,6 +104,7 @@ export const apiService = {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true',
           }
         })
       );
@@ -120,6 +126,7 @@ export const apiService = {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'ngrok-skip-browser-warning': 'true',
           },
           body: JSON.stringify({
             lot_id: lotId,
