@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Linking } from 'react-native';
 import { colors, spacing, typography } from '../theme/colors';
 import { formatTimestamp } from '../lib/dataTransformer';
 
@@ -83,6 +83,25 @@ export default function ParkingCard({ visible, parking, onClose }) {
           <Text style={styles.lastUpdated}>
             Scanned: {formatTimestamp(parking.lastUpdated)}
           </Text>
+
+          {/* Navigate Button */}
+          {parking.latitude && parking.longitude && (
+            <TouchableOpacity
+              style={styles.navigateButton}
+              onPress={() => {
+                const lat = parking.latitude;
+                const lng = parking.longitude;
+                const label = encodeURIComponent(parking.name || 'Parking Lot');
+                // Use https Apple Maps URL — works in both Expo Go and standalone builds
+                const url = `https://maps.apple.com/?q=${label}&ll=${lat},${lng}&dirflg=d`;
+                Linking.openURL(url).catch(() =>
+                  console.warn('Could not open Apple Maps')
+                );
+              }}
+            >
+              <Text style={styles.navigateText}>🧭  Navigate Here</Text>
+            </TouchableOpacity>
+          )}
 
           {/* Close Button */}
           <TouchableOpacity 
@@ -196,6 +215,24 @@ const styles = StyleSheet.create({
     opacity: 0.6,
     textAlign: 'center',
     marginTop: spacing.sm,
+  },
+  navigateButton: {
+    marginTop: spacing.md,
+    backgroundColor: colors.primary,
+    borderRadius: 16,
+    paddingVertical: spacing.sm + 2,
+    alignItems: 'center',
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  navigateText: {
+    color: colors.white,
+    fontSize: typography.medium,
+    fontWeight: '700',
+    letterSpacing: 0.5,
   },
   closeButton: {
     position: 'absolute',
