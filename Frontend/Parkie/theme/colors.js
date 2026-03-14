@@ -3,6 +3,7 @@ export const colors = {
   // Brand / Core
   background: '#0a0a0a',      // Onyx (Main Screen)
   surface: '#401056',         // Dark Amethyst (Cards/Secondary)
+  secondary: '#1f2937',       // Midnight Slate (Alternative Background)
   primary: '#8d23be',         // Dark Violet (CTAs/Active)
   
   // Text
