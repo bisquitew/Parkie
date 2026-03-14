@@ -17,7 +17,7 @@ export default function ParkingCard({ visible, parking, onClose }) {
       case 'gray':
         return colors.statusGray;
       default:
-        return colors.secondary;
+        return colors.textSecondary;
     }
   };
 
@@ -43,31 +43,31 @@ export default function ParkingCard({ visible, parking, onClose }) {
           activeOpacity={1}
           onPress={() => {}} // Prevent closing when touching card
         >
-          {/* Status Indicator */}
-          <View style={[styles.statusIndicator, { backgroundColor: statusColor }]} />
+          {/* Floating Glow Effect (Subtle) */}
+          <View style={[styles.glow, { shadowColor: statusColor }]} />
 
           {/* Parking Name */}
           <Text style={styles.parkingName}>{parking.name}</Text>
 
-          {/* Divider */}
+          {/* Divider (Violet) */}
           <View style={styles.divider} />
 
-          {/* Info Row 1: Slots Available */}
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Slots Available</Text>
-            <Text style={styles.infoValue}>{parking.available}</Text>
-          </View>
+          {/* Info Rows */}
+          <View style={styles.infoContainer}>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Available</Text>
+              <Text style={[styles.infoValue, { color: colors.statusGreen }]}>{parking.available}</Text>
+            </View>
 
-          {/* Info Row 2: Slots Occupied */}
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Slots Occupied</Text>
-            <Text style={styles.infoValue}>{parking.occupied}</Text>
-          </View>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Occupied</Text>
+              <Text style={[styles.infoValue, { color: colors.textPrimary }]}>{parking.occupied}</Text>
+            </View>
 
-          {/* Info Row 3: Occupancy Percentage */}
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Capacity</Text>
-            <Text style={styles.infoValue}>{occupancyPercent}%</Text>
+            <View style={styles.infoRow}>
+              <Text style={styles.infoLabel}>Capacity</Text>
+              <Text style={styles.infoValue}>{occupancyPercent}%</Text>
+            </View>
           </View>
 
           {/* Status Badge */}
@@ -81,7 +81,7 @@ export default function ParkingCard({ visible, parking, onClose }) {
 
           {/* Last Updated */}
           <Text style={styles.lastUpdated}>
-            Last scanned: {formatTimestamp(parking.lastUpdated)}
+            Scanned: {formatTimestamp(parking.lastUpdated)}
           </Text>
 
           {/* Close Button */}
@@ -100,92 +100,119 @@ export default function ParkingCard({ visible, parking, onClose }) {
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: colors.overlay,
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.md,
   },
   card: {
-    backgroundColor: colors.tertiary,
-    borderRadius: 16,
+    backgroundColor: colors.glassBackground,
+    borderRadius: 30, // High roundedness
     padding: spacing.lg,
     width: '100%',
-    maxWidth: 400,
-    shadowColor: colors.black,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 10,
+    maxWidth: 380,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.4,
+    shadowRadius: 20,
+    elevation: 15,
+    overflow: 'hidden',
   },
-  statusIndicator: {
-    height: 4,
-    width: '100%',
-    borderRadius: 2,
-    marginBottom: spacing.md,
+  glow: {
+    position: 'absolute',
+    top: -50,
+    left: -50,
+    right: -50,
+    bottom: -50,
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 50,
+    zIndex: -1,
   },
   parkingName: {
     fontSize: typography.xlarge,
-    fontWeight: 'bold',
-    color: colors.primary,
+    fontWeight: '800',
+    color: colors.textPrimary,
     marginBottom: spacing.md,
+    textAlign: 'center',
+    letterSpacing: 0.5,
   },
   divider: {
     height: 1,
-    backgroundColor: colors.border,
+    backgroundColor: colors.primary,
+    opacity: 0.3,
+    marginBottom: spacing.lg,
+    width: '60%',
+    alignSelf: 'center',
+  },
+  infoContainer: {
     marginBottom: spacing.md,
   },
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    padding: spacing.sm,
+    borderRadius: 12,
   },
   infoLabel: {
     fontSize: typography.medium,
-    color: colors.secondary,
+    color: colors.textSecondary,
     fontWeight: '600',
   },
   infoValue: {
     fontSize: typography.large,
     fontWeight: 'bold',
-    color: colors.primary,
+    color: colors.textPrimary,
   },
   statusBadgeContainer: {
     alignItems: 'center',
     marginTop: spacing.md,
-    marginBottom: spacing.md,
+    marginBottom: spacing.sm,
   },
   statusBadge: {
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.xl,
     paddingVertical: spacing.sm,
-    borderRadius: 20,
+    borderRadius: 25,
+    shadowColor: colors.black,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    elevation: 5,
   },
   statusText: {
     color: colors.white,
     fontWeight: 'bold',
     fontSize: typography.medium,
+    letterSpacing: 1,
   },
   lastUpdated: {
     fontSize: typography.small,
-    color: colors.secondary,
-    opacity: 0.7,
-    marginBottom: spacing.md,
+    color: colors.textSecondary,
+    opacity: 0.6,
     textAlign: 'center',
+    marginTop: spacing.sm,
   },
   closeButton: {
     position: 'absolute',
     top: spacing.md,
     right: spacing.md,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: colors.secondary,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
   },
   closeText: {
-    fontSize: typography.xlarge,
-    color: colors.tertiary,
+    fontSize: typography.large,
+    color: colors.textPrimary,
     fontWeight: 'bold',
   },
 });

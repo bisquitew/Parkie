@@ -1,19 +1,29 @@
-// Grayscale Theme Colors
+// Premium Dark Theme Palette
 export const colors = {
-  primary: '#1F1F1F',      // Dark gray (main background, buttons)
-  secondary: '#4A4A4A',    // Medium gray (text, accents)
-  tertiary: '#E8E8E8',     // Light gray (cards, light backgrounds)
+  // Brand / Core
+  background: '#0a0a0a',      // Onyx (Main Screen)
+  surface: '#401056',         // Dark Amethyst (Cards/Secondary)
+  primary: '#8d23be',         // Dark Violet (CTAs/Active)
   
-  // Status colors
-  statusGreen: '#4CAF50',   // Green for available spots
-  statusYellow: '#FFC107',  // Yellow for moderate occupancy
-  statusRed: '#F44336',     // Red for full parking
-  statusGray: '#9E9E9E',    // Gray for invalid
+  // Text
+  textPrimary: '#ffffff',     // High contrast
+  textSecondary: '#9ca3af',   // Ghost Gray (Muted labels)
   
-  // Utility colors
+  // Status (High Vibrancy)
+  statusGreen: '#10b981',     // Electric Emerald
+  statusYellow: '#f59e0b',    // Neon Amber
+  statusRed: '#ef4444',       // Pulse Red
+  statusGray: '#4b5563',      // Inactive/Offline
+  
+  // Glassmorphism Helpers
+  glassBackground: 'rgba(64, 16, 86, 0.4)', // Amethyst with transparency
+  glassBorder: 'rgba(141, 35, 190, 0.3)',   // Violet border
+  
+  // Utility
+  border: '#1f2937',          // Midnight Slate
   white: '#FFFFFF',
   black: '#000000',
-  border: '#CCCCCC',        // Light border color
+  overlay: 'rgba(0, 0, 0, 0.7)',
 };
 
 export const typography = {

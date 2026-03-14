@@ -227,7 +227,17 @@ function renderLotView() {
         <p>Location: ${currentLot.latitude}, ${currentLot.longitude}</p>
         <p>Configuration: Click points on the image below to define parking slots (4 points per slot).</p>
       </div>
+
+      <div class="lot-setup-controls">
+        <input type="url" id="camera-url-input" value="${currentLot.camera_url}" placeholder="Camera URL">
+        <button id="preview-frame" class="counter">Preview</button>
+      </div>
       
+      <div id="loading-overlay" class="loading-overlay" style="display:none">
+        <div class="spinner"></div>
+        <p>Capturing frame...</p>
+      </div>
+
       <div class="canvas-container">
         <canvas id="detection-canvas"></canvas>
       </div>
@@ -251,16 +261,49 @@ let img: HTMLImageElement;
 function initCanvas() {
   const canvas = document.querySelector('#detection-canvas') as HTMLCanvasElement;
   const ctx = canvas.getContext('2d')!;
+  const cameraInput = document.querySelector('#camera-url-input') as HTMLInputElement;
+  const loadingOverlay = document.querySelector('#loading-overlay') as HTMLElement;
+  const previewBtn = document.querySelector('#preview-frame') as HTMLButtonElement;
+  const saveBtn = document.querySelector('#save-config') as HTMLButtonElement;
+
   img = new Image();
-  img.src = currentLot?.camera_url || '';
-  
   img.onload = () => {
     canvas.width = img.width;
     canvas.height = img.height;
     draw();
   };
 
+  // Trigger preview on load if there's a camera_url
+  if (currentLot?.camera_url) {
+    handlePreview();
+  }
+
+  async function handlePreview() {
+    const url = cameraInput.value;
+    if (!url) {
+      alert("Please enter a camera URL first.");
+      return;
+    }
+
+    loadingOverlay.style.display = 'flex';
+    previewBtn.disabled = true;
+
+    try {
+      const data = await api.captureFrame(url);
+      // Backend should return { image: "base64..." }
+      img.src = `data:image/jpeg;base64,${data.image}`;
+    } catch (err: any) {
+      alert(`Error capturing frame: ${err.message}`);
+    } finally {
+      loadingOverlay.style.display = 'none';
+      previewBtn.disabled = false;
+    }
+  }
+
+  previewBtn.addEventListener('click', handlePreview);
+
   canvas.addEventListener('click', (e) => {
+    if (!img.complete || !img.src) return;
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
@@ -281,7 +324,11 @@ function initCanvas() {
     draw();
   });
 
-  document.querySelector('#save-config')?.addEventListener('click', async () => {
+  saveBtn.addEventListener('click', async () => {
+    if (points.length === 0) {
+      alert("Please draw at least one parking slot.");
+      return;
+    }
     if (points.length % 4 !== 0) {
       alert("Please complete the current slot (4 points required per slot).");
       return;
@@ -296,19 +343,18 @@ function initCanvas() {
       slots_data.push([p1.x, p1.y, p2.x, p2.y, p3.x, p3.y, p4.x, p4.y]);
     }
 
+    saveBtn.disabled = true;
+    saveBtn.innerText = "Saving...";
+
     try {
-      await api.put(`/lots/${currentLot?.id}/setup`, {
-        owner_id: currentUser?.user_id,
-        name: currentLot?.name,
-        latitude: currentLot?.latitude,
-        longitude: currentLot?.longitude,
-        camera_url: currentLot?.camera_url,
-        slots_data
-      });
+      await api.saveLotSetup(currentLot!.id, cameraInput.value, slots_data);
       alert("Configuration saved successfully!");
       navigate('dashboard');
     } catch (err: any) {
-      alert(err.message);
+      alert(`Error saving configuration: ${err.message}`);
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.innerText = "Save Configuration";
     }
   });
 

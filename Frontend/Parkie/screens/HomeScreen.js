@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert } from 'react-native';
+import { View, StyleSheet, Alert, StatusBar, SafeAreaView } from 'react-native';
 import TopBar from '../components/TopBar';
 import MapPlaceholder from '../components/MapPlaceholder';
 import ParkingCard from '../components/ParkingCard';
@@ -19,66 +19,45 @@ export default function HomeScreen() {
   const [error, setError] = useState(null);
   const [retryCount, setRetryCount] = useState(0);
 
-  /**
-   * Fetch all parking lots from API
-   */
   const fetchParkingLots = async () => {
     try {
-      console.log('Fetching parking lots...');
       const response = await apiService.fetchAllLots();
-      
       if (Array.isArray(response)) {
         const transformedLots = transformLotsData(response);
         setParkingLots(transformedLots);
         setError(null);
         setRetryCount(0);
-        console.log(`Successfully fetched ${transformedLots.length} lots`);
       } else {
         throw new Error('Invalid response format');
       }
     } catch (err) {
-      console.error('Error fetching lots:', err);
       const newRetryCount = retryCount + 1;
       setRetryCount(newRetryCount);
-      
-      // After max failed attempts, show error message
       if (newRetryCount >= (API_CONFIG.MAX_RETRIES || 3)) {
-        setError(err?.message || 'Failed to load parking data. Check your connection.');
+        setError(err?.message || 'Failed to load parking data.');
         setLoading(false);
       }
     }
   };
 
-  /**
-   * Initial load on component mount
-   */
   useEffect(() => {
     const initiate = async () => {
       setLoading(true);
       await fetchParkingLots();
       setLoading(false);
     };
-
     initiate();
   }, []);
 
-  /**
-   * Polling: Fetch data every 5 seconds
-   */
   useEffect(() => {
     const pollingInterval = setInterval(() => {
-      // Only poll if not currently loading and no error
       if (!loading && !error) {
         fetchParkingLots();
       }
     }, API_CONFIG.POLLING_INTERVAL);
-
     return () => clearInterval(pollingInterval);
   }, [loading, error, retryCount]);
 
-  /**
-   * Handle manual retry after max attempts reached
-   */
   const handleManualRetry = () => {
     setError(null);
     setRetryCount(0);
@@ -86,103 +65,97 @@ export default function HomeScreen() {
     fetchParkingLots().then(() => setLoading(false));
   };
 
-  /**
-   * Handle map press - show random parking card
-   */
   const handleMapPress = () => {
     if (parkingLots.length === 0) {
-      Alert.alert('No Data', 'Parking data not loaded yet. Please wait...');
+      Alert.alert('No Data', 'Parking data not loaded yet.');
       return;
     }
-
     const randomIndex = Math.floor(Math.random() * parkingLots.length);
     setSelectedParking(parkingLots[randomIndex]);
     setCardVisible(true);
   };
 
-  const handleCardClose = () => {
-    setCardVisible(false);
-  };
+  const handleCardClose = () => setCardVisible(false);
+  const handleSettingsPress = () => Alert.alert('Settings', 'Coming soon!');
+  const handleNavigationPress = () => Alert.alert('Navigate', 'Coming soon!');
+  const handleTalkPress = () => Alert.alert('Talk', 'Voice feature coming soon!');
 
-  const handleSettingsPress = () => {
-    Alert.alert('Settings', 'Settings page coming soon!');
-  };
-
-  const handleNavigationPress = () => {
-    Alert.alert('Navigate', 'Navigation feature coming soon!');
-  };
-
-  const handleTalkPress = () => {
-    Alert.alert('Talk', 'Voice feature coming soon!');
-  };
-
-  /**
-   * Render loading state
-   */
-  if (loading && parkingLots.length === 0) {
-    return (
-      <View style={styles.container}>
-        <TopBar onSettingsPress={handleSettingsPress} />
-        <LoadingSpinner message="Fetching parking data..." />
-        <BottomNavBar 
-          onNavigationPress={handleNavigationPress}
-          onTalkPress={handleTalkPress}
-        />
-      </View>
-    );
-  }
-
-  /**
-   * Render error state
-   */
-  if (error) {
-    return (
-      <View style={styles.container}>
-        <TopBar onSettingsPress={handleSettingsPress} />
-        <ErrorMessage 
-          error={error}
-          retryCount={retryCount}
-          maxRetries={API_CONFIG.MAX_RETRIES || 3}
-          onRetry={handleManualRetry}
-        />
-        <BottomNavBar 
-          onNavigationPress={handleNavigationPress}
-          onTalkPress={handleTalkPress}
-        />
-      </View>
-    );
-  }
-
-  /**
-   * Render normal state with map and data
-   */
   return (
-    <View style={styles.container}>
-      {/* Top Bar */}
-      <TopBar onSettingsPress={handleSettingsPress} />
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" />
+      <View style={styles.container}>
+        {/* Map is at the bottom layer */}
+        <MapPlaceholder onMapPress={handleMapPress} />
 
-      {/* Main Content */}
-      <MapPlaceholder onMapPress={handleMapPress} />
+        {/* Floating Top Bar */}
+        <View style={styles.topBarWrapper}>
+          <TopBar onSettingsPress={handleSettingsPress} />
+        </View>
 
-      {/* Parking Card Overlay */}
-      <ParkingCard 
-        visible={cardVisible}
-        parking={selectedParking}
-        onClose={handleCardClose}
-      />
+        {/* Parking Card Overlay */}
+        <ParkingCard 
+          visible={cardVisible}
+          parking={selectedParking}
+          onClose={handleCardClose}
+        />
 
-      {/* Bottom Navigation Bar */}
-      <BottomNavBar 
-        onNavigationPress={handleNavigationPress}
-        onTalkPress={handleTalkPress}
-      />
-    </View>
+        {/* Floating Bottom Nav */}
+        <View style={styles.bottomNavWrapper}>
+          <BottomNavBar 
+            onNavigationPress={handleNavigationPress}
+            onTalkPress={handleTalkPress}
+          />
+        </View>
+
+        {loading && parkingLots.length === 0 && (
+          <View style={styles.overlayContainer}>
+             <LoadingSpinner message="Locating spots..." />
+          </View>
+        )}
+
+        {error && (
+          <View style={styles.overlayContainer}>
+            <ErrorMessage 
+              error={error}
+              retryCount={retryCount}
+              maxRetries={API_CONFIG.MAX_RETRIES || 3}
+              onRetry={handleManualRetry}
+            />
+          </View>
+        )}
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
   container: {
     flex: 1,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.background,
   },
+  topBarWrapper: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    right: 20,
+    zIndex: 10,
+  },
+  bottomNavWrapper: {
+    position: 'absolute',
+    bottom: 30,
+    left: 40,
+    right: 40,
+    zIndex: 10,
+  },
+  overlayContainer: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(10, 10, 10, 0.8)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 20,
+  }
 });

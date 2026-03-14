@@ -5,19 +5,18 @@ import { colors, spacing, typography } from '../theme/colors';
 export default function TopBar({ onSettingsPress }) {
   return (
     <View style={styles.topBar}>
-      {/* Settings Button */}
       <TouchableOpacity 
-        style={styles.settingsButton}
+        style={styles.iconButton}
         onPress={onSettingsPress}
       >
-        <Text style={styles.settingsIcon}>⚙️</Text>
+        <Text style={styles.icon}>⚙️</Text>
       </TouchableOpacity>
 
-      {/* Parkie Logo/Title */}
-      <Text style={styles.logo}>Parkie</Text>
+      <Text style={styles.logo}>PARKIE</Text>
 
-      {/* Placeholder for right alignment */}
-      <View style={styles.placeholder} />
+      <TouchableOpacity style={styles.iconButton}>
+        <Text style={styles.icon}>🔔</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -28,23 +27,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
-    backgroundColor: colors.tertiary,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.glassBackground,
+    borderRadius: 25,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 10,
+    elevation: 5,
   },
-  settingsButton: {
-    padding: spacing.sm,
+  iconButton: {
+    width: 40,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
   },
-  settingsIcon: {
-    fontSize: 24,
+  icon: {
+    fontSize: 20,
   },
   logo: {
-    fontSize: typography.title,
-    fontWeight: 'bold',
-    color: colors.primary,
-  },
-  placeholder: {
-    width: 40,
+    fontSize: typography.xlarge,
+    fontWeight: '900',
+    color: colors.textPrimary,
+    letterSpacing: 3,
   },
 });

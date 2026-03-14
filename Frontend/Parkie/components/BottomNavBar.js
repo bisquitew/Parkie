@@ -5,22 +5,26 @@ import { colors, spacing, typography } from '../theme/colors';
 export default function BottomNavBar({ onNavigationPress, onTalkPress }) {
   return (
     <View style={styles.navBar}>
-      {/* Navigation Button */}
       <TouchableOpacity 
         style={styles.navButton}
         onPress={onNavigationPress}
       >
-        <Text style={styles.icon}>📍</Text>
-        <Text style={styles.label}>Navigate</Text>
+        <View style={styles.iconCircle}>
+          <Text style={styles.icon}>📍</Text>
+        </View>
+        <Text style={styles.label}>NAVIGATE</Text>
       </TouchableOpacity>
 
-      {/* Talk Button */}
+      <View style={styles.divider} />
+
       <TouchableOpacity 
         style={styles.navButton}
         onPress={onTalkPress}
       >
-        <Text style={styles.icon}>🎤</Text>
-        <Text style={styles.label}>Talk</Text>
+        <View style={styles.iconCircle}>
+          <Text style={styles.icon}>🎤</Text>
+        </View>
+        <Text style={styles.label}>VOICE</Text>
       </TouchableOpacity>
     </View>
   );
@@ -31,24 +35,43 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    paddingBottom: spacing.lg,
-    backgroundColor: colors.tertiary,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
+    paddingVertical: spacing.sm,
+    backgroundColor: colors.glassBackground,
+    borderRadius: 35,
+    borderWidth: 1,
+    borderColor: colors.glassBorder,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 15,
+    elevation: 10,
   },
   navButton: {
+    flex: 1,
     alignItems: 'center',
-    paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs,
+  },
+  divider: {
+    width: 1,
+    height: '60%',
+    backgroundColor: colors.glassBorder,
+  },
+  iconCircle: {
+    width: 45,
+    height: 45,
+    borderRadius: 22.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   icon: {
-    fontSize: 28,
-    marginBottom: spacing.xs,
+    fontSize: 22,
   },
   label: {
-    fontSize: typography.small,
-    color: colors.secondary,
-    fontWeight: '600',
+    fontSize: 10,
+    color: colors.textPrimary,
+    fontWeight: '800',
+    letterSpacing: 1.5,
   },
 });

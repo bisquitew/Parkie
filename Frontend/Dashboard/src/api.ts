@@ -38,5 +38,13 @@ export const api = {
       throw new Error(error.detail || 'API request failed');
     }
     return response.json();
+  },
+
+  async captureFrame(camera_url: string) {
+    return this.post('/capture_frame', { camera_url });
+  },
+
+  async saveLotSetup(lot_id: string, camera_url: string, slots_data: number[][]) {
+    return this.post(`/lots/${lot_id}/setup`, { camera_url, slots_data });
   }
 };
