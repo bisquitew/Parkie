@@ -56,13 +56,16 @@ This FastAPI service acts as the "glue" between the **AI Vision** component (det
 **Used by:** Web Dashboard.
 - **Payload:** Includes `owner_id`, `name`, `latitude`, `longitude`, `camera_url`, `slots_data`, and optional `capacity`.
 
-### 7. Setup/Update Existing Lot (`POST /lots/{lot_id}/setup`)
+### 7. Setup/Update Existing Lot (`PUT /lots/{lot_id}/setup`)
 **Used by:** Web Dashboard.
-- **Logic:** Updates lot and resets `is_verified` to `false`.
+- **Method:** `PUT`
+- **Logic:** Replaces the configuration of an existing lot and resets `is_verified` to `false`.
 
-### 8. Admin: Verify Parking Lot (`POST /lots/{lot_id}/verify`)
+### 8. Admin: Verify Parking Lot (`PATCH /lots/{lot_id}/verify`)
 **Used by:** Admin Dashboard.
+- **Method:** `PATCH`
 - **Query Params:** `verified` (bool, default: true)
+- **Logic:** Partially updates the lot to set its verification status.
 
 ### 9. Get Lot Configuration (`GET /lots/{lot_id}/config`)
 **Used by:** `ai_vision` script.

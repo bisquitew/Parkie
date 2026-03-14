@@ -282,7 +282,7 @@ async def create_lot(payload: LotSetupPayload):
         "message": "Lot registered successfully. Pending admin verification."
     }
 
-@app.post("/lots/{lot_id}/setup")
+@app.put("/lots/{lot_id}/setup")
 async def setup_lot(lot_id: str, payload: LotSetupPayload):
     """
     Updates details for an existing lot (Re-configuration).
@@ -314,7 +314,7 @@ async def setup_lot(lot_id: str, payload: LotSetupPayload):
         "message": "Lot configuration updated. Pending admin re-verification."
     }
 
-@app.post("/lots/{lot_id}/verify")
+@app.patch("/lots/{lot_id}/verify")
 async def verify_lot(lot_id: str, verified: bool = True):
     """
     Admin endpoint to verify or reject a parking lot.
