@@ -42,7 +42,7 @@ class LotSetupPayload(BaseModel):
     latitude: float
     longitude: float
     camera_url: str
-    slots_data: List[List[int]]
+    slots_data: List[List[int]]  # List of 8-value vectors: [x1, y1, x2, y2, x3, y3, x4, y4]
     capacity: Optional[int] = None # Optional, will default to len(slots_data) if not provided
 
 def get_status_color(capacity: int, available_spots: int) -> str:

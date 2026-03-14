@@ -89,15 +89,19 @@ This FastAPI service acts as the "glue" between the **AI Vision** component (det
     "latitude": 45.523062,
     "longitude": -122.676482,
     "camera_url": "https://example.com/stream.m3u8",
-    "slots_data": [[627, 495, 678, 565], [580, 505, 624, 563]],
+    "slots_data": [
+      [x1, y1, x2, y2, x3, y3, x4, y4],
+      [x1, y1, x2, y2, x3, y3, x4, y4]
+    ],
     "capacity": 100
   }
   ```
 - **Logic:**
   1. Saves the lot `name`, coordinates (`latitude`, `longitude`), `camera_url`, and `slots_data`.
-  2. Updates the lot's `capacity` (uses provided value or count of slots).
-  3. Sets `is_verified` to `false` (requires admin review).
-  4. Updates `last_updated`.
+  2. `slots_data` is an array of vectors, each containing **8 coordinates** (4 points: top-left, top-right, bottom-right, bottom-left) to support perspective-correct quadrilaterals.
+  3. Updates the lot's `capacity` (uses provided value or count of slots).
+  4. Sets `is_verified` to `false` (requires admin review).
+  5. Updates `last_updated`.
 
 ---
 
@@ -109,7 +113,7 @@ This FastAPI service acts as the "glue" between the **AI Vision** component (det
   ```json
   {
     "camera_url": "https://example.com/stream.m3u8",
-    "slots_data": [[627, 495, 678, 565], ...]
+    "slots_data": [[x1, y1, x2, y2, x3, y3, x4, y4], ...]
   }
   ```
 
@@ -141,7 +145,7 @@ The `parking_lots` table should have the following columns:
 - `available_spots`: `int`
 - `last_updated`: `timestamptz`
 - `camera_url`: `text` (URL for the live feed)
-- `slots_data`: `jsonb` (Array of [x1, y1, x2, y2] bounding boxes)
+- `slots_data`: `jsonb` (Array of 8-coordinate vectors [x1, y1, x2, y2, x3, y3, x4, y4])
 - `latitude`: `float8` (GPS Latitude)
 - `longitude`: `float8` (GPS Longitude)
 - `is_verified`: `boolean` (Default: false, for admin review)
