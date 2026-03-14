@@ -126,7 +126,7 @@ async function renderDashboard() {
           <input type="text" id="lot-name" placeholder="Lot Name" required>
           <input type="number" step="any" id="lot-lat" placeholder="Latitude" required>
           <input type="number" step="any" id="lot-lng" placeholder="Longitude" required>
-          <input type="url" id="lot-camera" placeholder="Camera URL (Image/Stream)" required>
+          <input type="text" id="lot-camera" placeholder="Camera URL or Local Path" required>
           <div class="modal-actions">
             <button type="button" id="close-modal" class="counter secondary">Cancel</button>
             <button type="submit" class="counter">Create</button>
@@ -225,12 +225,14 @@ function renderLotView() {
     <section id="center">
       <div class="lot-details">
         <p>Location: ${currentLot.latitude}, ${currentLot.longitude}</p>
-        <p>Configuration: Click points on the image below to define parking slots (4 points per slot).</p>
+        <p>Step 1: Capture a frame from the camera stream.</p>
+        <p>Step 2: Click points on the image to define parking slots (4 points per slot).</p>
       </div>
 
-      <div class="lot-setup-controls">
-        <input type="url" id="camera-url-input" value="${currentLot.camera_url}" placeholder="Camera URL">
-        <button id="preview-frame" class="counter">Preview</button>
+      <div class="canvas-actions">
+        <input type="text" id="camera-url-input" value="${currentLot.camera_url}" placeholder="Camera URL or Path" style="width: 300px; padding: 8px; border-radius: 4px; border: 1px solid #ccc;">
+        <button id="capture-frame-btn" class="counter">Capture Frame</button>
+        <span id="capture-status"></span>
       </div>
       
       <div id="loading-overlay" class="loading-overlay" style="display:none">
@@ -240,9 +242,10 @@ function renderLotView() {
 
       <div class="canvas-container">
         <canvas id="detection-canvas"></canvas>
+        <div id="canvas-placeholder">Click 'Capture Frame' to start plotting</div>
       </div>
 
-      <div class="canvas-controls">
+      <div class="canvas-controls" style="display:none">
         <button id="undo-point" class="counter secondary">Undo Last Point</button>
         <button id="clear-points" class="counter secondary">Clear All</button>
         <button id="save-config" class="counter">Save Configuration</button>
@@ -251,56 +254,56 @@ function renderLotView() {
   `;
 
   document.querySelector('#back-to-dashboard')?.addEventListener('click', () => navigate('dashboard'));
+  
+  const captureBtn = document.querySelector('#capture-frame-btn') as HTMLButtonElement;
+  const cameraInput = document.querySelector('#camera-url-input') as HTMLInputElement;
+  const loadingOverlay = document.querySelector('#loading-overlay') as HTMLElement;
+  const status = document.querySelector('#capture-status') as HTMLElement;
+  
+  captureBtn.addEventListener('click', async () => {
+    if (!currentLot) return;
+    const url = cameraInput.value;
+    if (!url) {
+        alert("Please enter a camera URL/Path.");
+        return;
+    }
 
-  initCanvas();
+    captureBtn.disabled = true;
+    loadingOverlay.style.display = 'flex';
+    status.innerText = "Capturing...";
+
+    try {
+      const base64Image = await api.captureFrame(url);
+      status.innerText = "Frame captured!";
+      initCanvas(base64Image, url);
+      document.querySelector('.canvas-controls')!.setAttribute('style', 'display:flex');
+      document.querySelector('#canvas-placeholder')!.setAttribute('style', 'display:none');
+    } catch (err: any) {
+      status.innerText = "Error: " + err.message;
+      alert("Failed to capture frame: " + err.message);
+    } finally {
+      captureBtn.disabled = false;
+      loadingOverlay.style.display = 'none';
+    }
+  });
 }
 
 let points: { x: number, y: number }[] = [];
 let img: HTMLImageElement;
 
-function initCanvas() {
+function initCanvas(base64Image: string, cameraUrl: string) {
   const canvas = document.querySelector('#detection-canvas') as HTMLCanvasElement;
   const ctx = canvas.getContext('2d')!;
-  const cameraInput = document.querySelector('#camera-url-input') as HTMLInputElement;
-  const loadingOverlay = document.querySelector('#loading-overlay') as HTMLElement;
-  const previewBtn = document.querySelector('#preview-frame') as HTMLButtonElement;
   const saveBtn = document.querySelector('#save-config') as HTMLButtonElement;
 
   img = new Image();
+  img.src = base64Image;
+  
   img.onload = () => {
     canvas.width = img.width;
     canvas.height = img.height;
     draw();
   };
-
-  // Trigger preview on load if there's a camera_url
-  if (currentLot?.camera_url) {
-    handlePreview();
-  }
-
-  async function handlePreview() {
-    const url = cameraInput.value;
-    if (!url) {
-      alert("Please enter a camera URL first.");
-      return;
-    }
-
-    loadingOverlay.style.display = 'flex';
-    previewBtn.disabled = true;
-
-    try {
-      const data = await api.captureFrame(url);
-      // Backend should return { image: "base64..." }
-      img.src = `data:image/jpeg;base64,${data.image}`;
-    } catch (err: any) {
-      alert(`Error capturing frame: ${err.message}`);
-    } finally {
-      loadingOverlay.style.display = 'none';
-      previewBtn.disabled = false;
-    }
-  }
-
-  previewBtn.addEventListener('click', handlePreview);
 
   canvas.addEventListener('click', (e) => {
     if (!img.complete || !img.src) return;
@@ -325,12 +328,8 @@ function initCanvas() {
   });
 
   saveBtn.addEventListener('click', async () => {
-    if (points.length === 0) {
-      alert("Please draw at least one parking slot.");
-      return;
-    }
-    if (points.length % 4 !== 0) {
-      alert("Please complete the current slot (4 points required per slot).");
+    if (points.length % 4 !== 0 || points.length === 0) {
+      alert("Please define at least one complete slot (4 points per slot).");
       return;
     }
 
@@ -347,7 +346,8 @@ function initCanvas() {
     saveBtn.innerText = "Saving...";
 
     try {
-      await api.saveLotSetup(currentLot!.id, cameraInput.value, slots_data);
+      if (!currentLot) return;
+      await api.saveLotSetup(currentLot.id, cameraUrl, slots_data);
       alert("Configuration saved successfully!");
       navigate('dashboard');
     } catch (err: any) {
@@ -362,7 +362,6 @@ function initCanvas() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, 0, 0);
 
-    // Draw existing slots
     ctx.lineWidth = 2;
     ctx.strokeStyle = '#aa3bff';
     
@@ -375,7 +374,6 @@ function initCanvas() {
       if (points[i+3]) ctx.closePath();
       ctx.stroke();
       
-      // Draw points
       for (let j = 0; j < 4 && i+j < points.length; j++) {
         ctx.fillStyle = '#aa3bff';
         ctx.beginPath();
@@ -384,7 +382,6 @@ function initCanvas() {
       }
     }
     
-    // Draw current incomplete slot points
     const remaining = points.length % 4;
     if (remaining > 0) {
       const start = points.length - remaining;

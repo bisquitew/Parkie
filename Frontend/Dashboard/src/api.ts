@@ -40,11 +40,15 @@ export const api = {
     return response.json();
   },
 
-  async captureFrame(camera_url: string) {
-    return this.post('/capture_frame', { camera_url });
+  async captureFrame(cameraUrl: string) {
+    const data = await this.post('/capture_frame', { camera_url: cameraUrl });
+    return data.image; // Returns base64 string
   },
 
-  async saveLotSetup(lot_id: string, camera_url: string, slots_data: number[][]) {
-    return this.post(`/lots/${lot_id}/setup`, { camera_url, slots_data });
+  async saveLotSetup(lotId: string, cameraUrl: string, slotsData: number[][]) {
+    return this.post(`/lots/${lotId}/setup`, {
+      camera_url: cameraUrl,
+      slots_data: slotsData
+    });
   }
 };
