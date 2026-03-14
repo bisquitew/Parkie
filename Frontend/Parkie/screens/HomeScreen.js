@@ -6,6 +6,7 @@ import ParkingCard from '../components/ParkingCard';
 import BottomNavBar from '../components/BottomNavBar';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
+import NearbySearch from '../components/NearbySearch';
 import { colors } from '../theme/colors';
 import { apiService } from '../lib/api';
 import { transformLotsData, transformLotData } from '../lib/dataTransformer';
@@ -18,6 +19,8 @@ export default function HomeScreen() {
   const [cardVisible, setCardVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [destinationCoord, setDestinationCoord] = useState(null);
 
   const fetchParkingLots = async () => {
     try {
@@ -93,8 +96,17 @@ export default function HomeScreen() {
 
   const handleCardClose = () => setCardVisible(false);
   const handleSettingsPress = () => Alert.alert('Settings', 'Coming soon!');
-  const handleNavigationPress = () => Alert.alert('Navigate', 'Coming soon!');
+  const handleNavigationPress = () => setSearchVisible(true);
   const handleTalkPress = () => Alert.alert('Talk', 'Voice feature coming soon!');
+
+  const handleSearchComplete = (coord) => {
+    setDestinationCoord(coord);
+  };
+
+  const handleLotSelect = (lot) => {
+    setSelectedParking(lot);
+    setCardVisible(true);
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -109,7 +121,8 @@ export default function HomeScreen() {
         <View style={styles.mapWrapper}>
           <GoogleMaps 
             parkingLots={parkingLots} 
-            onMarkerPress={handleMarkerPress} 
+            onMarkerPress={handleMarkerPress}
+            destinationCoord={destinationCoord}
           />
         </View>
 
@@ -126,6 +139,14 @@ export default function HomeScreen() {
           visible={cardVisible}
           parking={selectedParking}
           onClose={handleCardClose}
+        />
+
+        <NearbySearch
+          visible={searchVisible}
+          parkingLots={parkingLots}
+          onClose={() => setSearchVisible(false)}
+          onLotSelect={handleLotSelect}
+          onSearchComplete={handleSearchComplete}
         />
 
         {loading && parkingLots.length === 0 && (

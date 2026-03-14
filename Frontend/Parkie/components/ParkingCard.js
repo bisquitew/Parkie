@@ -74,7 +74,7 @@ export default function ParkingCard({ visible, parking, onClose }) {
           <View style={styles.statusBadgeContainer}>
             <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
               <Text style={styles.statusText}>
-                {parking.status.toUpperCase()}
+                {(parking.status ?? 'unknown').toUpperCase()}
               </Text>
             </View>
           </View>

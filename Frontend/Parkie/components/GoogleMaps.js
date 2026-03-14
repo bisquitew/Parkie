@@ -35,8 +35,20 @@ function getPinColor(status) {
   }
 }
 
+// ─── Destination Pin ─────────────────────────────────────────────────────────
+function DestinationPin() {
+  return (
+    <View style={styles.destWrapper}>
+      <View style={styles.destBubble}>
+        <Text style={styles.destIcon}>📍</Text>
+      </View>
+      <View style={styles.destTail} />
+    </View>
+  );
+}
+
 // ─── Main Component ────────────────────────────────────────────────────────────
-export default function GoogleMaps({ parkingLots = [], onMarkerPress }) {
+export default function GoogleMaps({ parkingLots = [], onMarkerPress, destinationCoord }) {
   const [userLocation, setUserLocation] = useState(null);
   const [errorMsg, setErrorMsg] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -106,6 +118,21 @@ export default function GoogleMaps({ parkingLots = [], onMarkerPress }) {
     });
   }, [parkingLots, userLocation]);
 
+  // ── Re-fit when destination changes ──────────────────────────────────────
+  useEffect(() => {
+    if (!mapRef.current || !destinationCoord) return;
+    const coords = [{ latitude: destinationCoord.latitude, longitude: destinationCoord.longitude }];
+    // Include any lots near the destination
+    parkingLots
+      .filter(l => l.latitude && l.longitude)
+      .forEach(l => coords.push({ latitude: l.latitude, longitude: l.longitude }));
+    if (userLocation) coords.push({ latitude: userLocation.latitude, longitude: userLocation.longitude });
+    mapRef.current.fitToCoordinates(coords, {
+      edgePadding: { top: 100, right: 60, bottom: 140, left: 60 },
+      animated: true,
+    });
+  }, [destinationCoord]);
+
   // ── Marker press handler ──────────────────────────────────────────────────
   const handleMarkerPress = (lot) => {
     setSelectedLotId(lot.id);
@@ -162,6 +189,18 @@ export default function GoogleMaps({ parkingLots = [], onMarkerPress }) {
               />
             </Marker>
           ))}
+
+        {/* Destination pin */}
+        {destinationCoord && (
+          <Marker
+            key="destination"
+            coordinate={{ latitude: destinationCoord.latitude, longitude: destinationCoord.longitude }}
+            anchor={{ x: 0.5, y: 1 }}
+            tracksViewChanges={false}
+          >
+            <DestinationPin />
+          </Marker>
+        )}
       </MapView>
 
       {/* Re-center button */}
@@ -265,6 +304,39 @@ const styles = StyleSheet.create({
     borderLeftColor: 'transparent',
     borderRightColor: 'transparent',
     // border color set dynamically on the element
+  },
+
+  // Destination Pin
+  destWrapper: {
+    alignItems: 'center',
+  },
+  destBubble: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#fff',
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 8,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
+  destIcon: {
+    fontSize: 22,
+  },
+  destTail: {
+    width: 0,
+    height: 0,
+    borderLeftWidth: 7,
+    borderRightWidth: 7,
+    borderTopWidth: 10,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: colors.primary,
   },
 
   // Re-center button
