@@ -79,20 +79,25 @@ This FastAPI service acts as the "glue" between the **AI Vision** component (det
 ---
 
 ### 5. Setup Parking Lot (`POST /lots/{lot_id}/setup`)
-**Used by:** Web Dashboard.
+**Used by:** Web Dashboard (Lot Owner).
 - **URL:** `/lots/{lot_id}/setup`
 - **Method:** `POST`
 - **Payload (JSON):**
   ```json
   {
+    "name": "Central Plaza Parking",
+    "latitude": 45.523062,
+    "longitude": -122.676482,
     "camera_url": "https://example.com/stream.m3u8",
-    "slots_data": [[627, 495, 678, 565], [580, 505, 624, 563]]
+    "slots_data": [[627, 495, 678, 565], [580, 505, 624, 563]],
+    "capacity": 100
   }
   ```
 - **Logic:**
-  1. Saves the `camera_url` and `slots_data` (bounding boxes) to Supabase.
-  2. Updates the lot's `capacity` based on the number of slots in `slots_data`.
-  3. Updates `last_updated`.
+  1. Saves the lot `name`, coordinates (`latitude`, `longitude`), `camera_url`, and `slots_data`.
+  2. Updates the lot's `capacity` (uses provided value or count of slots).
+  3. Sets `is_verified` to `false` (requires admin review).
+  4. Updates `last_updated`.
 
 ---
 
@@ -137,3 +142,6 @@ The `parking_lots` table should have the following columns:
 - `last_updated`: `timestamptz`
 - `camera_url`: `text` (URL for the live feed)
 - `slots_data`: `jsonb` (Array of [x1, y1, x2, y2] bounding boxes)
+- `latitude`: `float8` (GPS Latitude)
+- `longitude`: `float8` (GPS Longitude)
+- `is_verified`: `boolean` (Default: false, for admin review)

@@ -3,7 +3,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from supabase import create_client, Client
-from typing import List, Dict
+from typing import List, Dict, Optional
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 
@@ -36,10 +36,14 @@ class DetectionPayload(BaseModel):
     lot_id: str  # This is the UUID
     detected_cars: int
 
-# Pydantic Model for the lot setup from the web dashboard
+# Pydantic Model for the lot setup from the web dashboard (Owner setup)
 class LotSetupPayload(BaseModel):
+    name: str
+    latitude: float
+    longitude: float
     camera_url: str
     slots_data: List[List[int]]
+    capacity: Optional[int] = None # Optional, will default to len(slots_data) if not provided
 
 def get_status_color(capacity: int, available_spots: int) -> str:
     """
@@ -157,18 +161,22 @@ async def get_lot(lot_id: str):
 @app.post("/lots/{lot_id}/setup")
 async def setup_lot(lot_id: str, payload: LotSetupPayload):
     """
-    Saves camera_url and slots_data to the database for a specific lot.
-    Updates the capacity based on the number of slots provided.
+    Saves lot details, camera_url, and slots_data to the database for a specific lot.
+    Updates the capacity and sets is_verified to false for admin review.
     """
-    # Calculate capacity from the number of slots
-    capacity = len(payload.slots_data)
+    # Use provided capacity or calculate from the number of slots
+    capacity = payload.capacity if payload.capacity is not None else len(payload.slots_data)
     
     # Update Supabase
     update_response = supabase.table("parking_lots") \
         .update({
+            "name": payload.name,
+            "latitude": payload.latitude,
+            "longitude": payload.longitude,
             "camera_url": payload.camera_url,
             "slots_data": payload.slots_data,
             "capacity": capacity,
+            "is_verified": False, # Requires admin check
             "last_updated": datetime.now(timezone.utc).isoformat()
         }) \
         .eq("id", lot_id) \
@@ -180,8 +188,10 @@ async def setup_lot(lot_id: str, payload: LotSetupPayload):
     return {
         "status": "success",
         "lot_id": lot_id,
+        "name": payload.name,
         "capacity": capacity,
-        "camera_url": payload.camera_url
+        "is_verified": False,
+        "message": "Lot setup successful. Pending admin verification."
     }
 
 @app.get("/lots/{lot_id}/config")
