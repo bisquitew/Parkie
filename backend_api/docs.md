@@ -135,3 +135,5 @@ The `parking_lots` table should have the following columns:
 - `capacity`: `int`
 - `available_spots`: `int`
 - `last_updated`: `timestamptz`
+- `camera_url`: `text` (URL for the live feed)
+- `slots_data`: `jsonb` (Array of [x1, y1, x2, y2] bounding boxes)
