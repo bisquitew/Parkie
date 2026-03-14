@@ -4,4 +4,4 @@ supabase
 pydantic[email]
 python-dotenv
 passlib[bcrypt]
-
+requests
