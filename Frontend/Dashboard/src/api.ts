@@ -1,4 +1,4 @@
-const API_BASE_URL = 'https://undateable-lashawnda-unnectareous.ngrok-free.dev';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://undateable-lashawnda-unnectareous.ngrok-free.dev';
 
 export const api = {
   async post(endpoint: string, data: any) {
@@ -6,21 +6,38 @@ export const api = {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
       },
       body: JSON.stringify(data),
     });
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'API request failed');
+      let errorMsg = 'API request failed';
+      try {
+        const error = await response.json();
+        errorMsg = error.detail || errorMsg;
+      } catch (e) {
+        errorMsg = await response.text();
+      }
+      throw new Error(errorMsg);
     }
     return response.json();
   },
 
   async get(endpoint: string) {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`);
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
+    });
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'API request failed');
+      let errorMsg = 'API request failed';
+      try {
+        const error = await response.json();
+        errorMsg = error.detail || errorMsg;
+      } catch (e) {
+        errorMsg = await response.text();
+      }
+      throw new Error(errorMsg);
     }
     return response.json();
   },
@@ -30,12 +47,19 @@ export const api = {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true',
       },
       body: JSON.stringify(data),
     });
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.detail || 'API request failed');
+      let errorMsg = 'API request failed';
+      try {
+        const error = await response.json();
+        errorMsg = error.detail || errorMsg;
+      } catch (e) {
+        errorMsg = await response.text();
+      }
+      throw new Error(errorMsg);
     }
     return response.json();
   },

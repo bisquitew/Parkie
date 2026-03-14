@@ -20,7 +20,13 @@ interface ParkingLot {
 }
 
 // --- State ---
-let currentUser: User | null = JSON.parse(localStorage.getItem('user') || 'null');
+let currentUser: User | null = null;
+try {
+  currentUser = JSON.parse(localStorage.getItem('user') || 'null');
+} catch (e) {
+  console.error("Failed to parse user from localStorage", e);
+  localStorage.removeItem('user');
+}
 let currentLots: ParkingLot[] = [];
 let currentLot: ParkingLot | null = null;
 let currentView: 'auth' | 'dashboard' | 'lot-view' = currentUser ? 'dashboard' : 'auth';
@@ -178,8 +184,15 @@ async function renderDashboard() {
 
 async function refreshLots() {
   const list = document.querySelector('#lots-list')!;
+  const userId = currentUser?.user_id || (currentUser as any)?.id;
+  
+  if (!userId) {
+    list.innerHTML = '<p class="error">Error: User ID not found. Please logout and login again.</p>';
+    return;
+  }
+
   try {
-    currentLots = await api.get(`/my_lots/${currentUser?.user_id}`);
+    currentLots = await api.get(`/my_lots/${userId}`);
     if (currentLots.length === 0) {
       list.innerHTML = '<p>No parking lots found. Add your first one!</p>';
       return;

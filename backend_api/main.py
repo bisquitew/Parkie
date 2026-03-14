@@ -217,13 +217,17 @@ async def get_my_lots(owner_id: str):
     Returns all parking lots owned by a specific user.
     Used by the dashboard.
     """
-    response = supabase.table("parking_lots").select("*").eq("owner_id", owner_id).execute()
-    lots = response.data
-    
-    for lot in lots:
-        lot["status_color"] = get_status_color(lot["capacity"], lot["available_spots"])
+    try:
+        response = supabase.table("parking_lots").select("*").eq("owner_id", owner_id).execute()
+        lots = response.data
         
-    return lots
+        for lot in lots:
+            lot["status_color"] = get_status_color(lot["capacity"], lot["available_spots"])
+            
+        return lots
+    except Exception as e:
+        # If owner_id is not a valid UUID or other DB error occurs
+        raise HTTPException(status_code=400, detail=f"Invalid owner ID or database error: {str(e)}")
 
 @app.get("/lots/colors")
 async def get_all_lot_colors() -> List[Dict[str, str]]:

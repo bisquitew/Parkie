@@ -50,40 +50,59 @@ This FastAPI service acts as the "glue" between the **AI Vision** component (det
 
 ### 5. Get Owner's Lots (`GET /my_lots/{owner_id}`)
 **Used by:** Web Dashboard.
-- **Response:** Returns all lots belonging to a specific owner.
+- **Response:** Returns all lots belonging to a specific owner. Handles invalid UUIDs with a 400 error.
 
-### 6. Create/Register Parking Lot (`POST /lots`)
+### 6. Get Lot Colors Only (`GET /lots/colors`)
+**Used by:** `mobile_app` (Optimized polling).
+- **Response:** Returns only the `id` and `status_color` for every **verified** lot.
+
+### 7. Get Single Lot Details (`GET /lots/{lot_id}`)
+**Used by:** `mobile_app` / Web Dashboard.
+- **Response:** Returns full details for a single parking lot.
+
+### 8. Create/Register Parking Lot (`POST /lots`)
 **Used by:** Web Dashboard.
 - **Payload:** Includes `owner_id`, `name`, `latitude`, `longitude`, `camera_url`, `slots_data`, and optional `capacity`.
 
-### 7. Setup/Update Existing Lot (`PUT /lots/{lot_id}/setup`)
+### 9. Setup/Update Existing Lot (`PUT /lots/{lot_id}/setup`)
 **Used by:** Web Dashboard.
 - **Method:** `PUT`
 - **Logic:** Replaces the configuration of an existing lot and resets `is_verified` to `false`.
 
-### 8. Capture Camera Frame (`POST /capture_frame`)
+### 10. Capture Camera Frame (`POST /capture_frame`)
 **Used by:** Admin Dashboard (Setup phase).
 - **Payload:** `{ "camera_url": "..." }`
 - **Logic:** Connects to the camera stream, grabs exactly one frame, and returns it as a base64-encoded JPEG.
 
-### 9. Lot Configuration Setup (`POST /lots/{lot_id}/setup`)
+### 11. Lot Configuration Setup (`POST /lots/{lot_id}/setup`)
 **Used by:** Admin Dashboard (Setup phase).
 - **Payload:** `{ "camera_url": "...", "slots_data": [[...], [...]] }`
 - **Logic:** Updates the `camera_url` and `slots_data` for a specific lot and recalculates `capacity`.
 
-### 10. Admin: Verify Parking Lot (`PATCH /lots/{lot_id}/verify`)
-**Used by:** Admin Dashboard.
+### 12. Admin: Verify Parking Lot (`PATCH /lots/{lot_id}/verify`)
+**Used by:** Admin Dashboard / Admin Script.
 - **Method:** `PATCH`
 - **Query Params:** `verified` (bool, default: true)
 - **Logic:** Partially updates the lot to set its verification status.
 
-### 11. Get Lot Configuration (`GET /lots/{lot_id}/config`)
+### 13. Get Lot Configuration (`GET /lots/{lot_id}/config`)
 **Used by:** `ai_vision` script.
 - **Response:** Returns `camera_url` and `slots_data`.
 
 ---
 
-## 🛠️ Database Schema (Supabase)
+## 🛠️ Admin Tools
+
+### 1. Admin Verification Script (`admin_verify.py`)
+An interactive CLI tool to list pending parking lots and verify them.
+```bash
+python admin_verify.py
+```
+*Note: Make sure the backend server is running locally on port 8000.*
+
+---
+
+## 🏗️ Database Schema (Supabase)
 
 ### `users` Table
 - `id`: `uuid` (Primary Key)
