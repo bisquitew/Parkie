@@ -60,7 +60,7 @@ export default function HomeScreen() {
             setParkingLots((prevLots) =>
               prevLots.map((lot) => (lot.id === updatedLot.id ? updatedLot : lot))
             );
-            
+
             // If the selected lot was updated, update its state too
             setSelectedParking((prevSelected) => {
               if (prevSelected && prevSelected.id === updatedLot.id) {
@@ -138,8 +138,8 @@ export default function HomeScreen() {
 
         {/* Map in the middle */}
         <View style={styles.mapWrapper}>
-          <GoogleMaps 
-            parkingLots={parkingLots} 
+          <GoogleMaps
+            parkingLots={parkingLots}
             onMarkerPress={handleMarkerPress}
             destinationCoord={destinationCoord}
             onClearDestination={() => setDestinationCoord(null)}
@@ -148,13 +148,13 @@ export default function HomeScreen() {
 
         {/* Floating Bottom Nav */}
         <View style={styles.bottomNavWrapper}>
-          <BottomNavBar 
+          <BottomNavBar
             onNavigationPress={handleNavigationPress}
           />
         </View>
 
         {/* Parking Card Overlay */}
-        <ParkingCard 
+        <ParkingCard
           visible={cardVisible}
           parking={selectedParking}
           onClose={handleCardClose}
@@ -171,13 +171,13 @@ export default function HomeScreen() {
 
         {loading && parkingLots.length === 0 && (
           <View style={styles.overlayContainer}>
-             <LoadingSpinner message="Locating spots..." />
+            <LoadingSpinner message="Locating spots..." />
           </View>
         )}
 
         {error && (
           <View style={styles.overlayContainer}>
-            <ErrorMessage 
+            <ErrorMessage
               error={error}
               onRetry={handleManualRetry}
             />

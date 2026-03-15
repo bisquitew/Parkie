@@ -5,21 +5,21 @@ export const colors = {
   surface: '#401056',         // Dark Amethyst (Cards/Secondary)
   secondary: '#1f2937',       // Midnight Slate (Alternative Background)
   primary: '#8d23be',         // Dark Violet (CTAs/Active)
-  
+
   // Text
   textPrimary: '#ffffff',     // High contrast
   textSecondary: '#9ca3af',   // Ghost Gray (Muted labels)
-  
+
   // Status (High Vibrancy)
   statusGreen: '#10b981',     // Electric Emerald
   statusYellow: '#f59e0b',    // Neon Amber
   statusRed: '#ef4444',       // Pulse Red
   statusGray: '#4b5563',      // Inactive/Offline
-  
+
   // Glassmorphism Helpers
   glassBackground: 'rgba(64, 16, 86, 0.4)', // Amethyst with transparency
   glassBorder: 'rgba(141, 35, 190, 0.3)',   // Violet border
-  
+
   // Utility
   border: '#1f2937',          // Midnight Slate
   white: '#FFFFFF',

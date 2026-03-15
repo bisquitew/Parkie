@@ -2,11 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { colors, spacing, typography } from '../theme/colors';
 
-export default function ErrorMessage({ 
-  error, 
-  retryCount, 
+export default function ErrorMessage({
+  error,
+  retryCount,
   maxRetries,
-  onRetry 
+  onRetry
 }) {
   const [countdown, setCountdown] = useState(0);
   const remainingRetries = maxRetries - retryCount;
@@ -44,7 +44,7 @@ export default function ErrorMessage({
           </Text>
         </View>
       ) : (
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.manualRetryButton}
           onPress={onRetry}
         >
@@ -54,8 +54,8 @@ export default function ErrorMessage({
 
       {/* Status */}
       <Text style={styles.statusText}>
-        {showManualRetry 
-          ? '❌ All automatic retries failed' 
+        {showManualRetry
+          ? '❌ All automatic retries failed'
           : '⏳ Attempting connection...'}
       </Text>
     </View>

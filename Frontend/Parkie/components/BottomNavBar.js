@@ -1,11 +1,12 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
 import { colors, spacing, typography } from '../theme/colors';
+import VoiceSearchBar from './VoiceSearchBar';
 
 export default function BottomNavBar({ onNavigationPress }) {
   return (
     <View style={styles.navBar}>
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.navButton}
         onPress={onNavigationPress}
       >
@@ -14,6 +15,10 @@ export default function BottomNavBar({ onNavigationPress }) {
         </View>
         <Text style={styles.label}>NAVIGATE</Text>
       </TouchableOpacity>
+
+      <View style={styles.divider} />
+
+      <VoiceSearchBar />
     </View>
   );
 }
@@ -33,11 +38,18 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.4,
     shadowRadius: 15,
     elevation: 10,
+    paddingHorizontal: spacing.md,
+  },
+  divider: {
+    width: 1,
+    height: 30,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    marginHorizontal: spacing.sm,
   },
   navButton: {
     alignItems: 'center',
     paddingVertical: spacing.xs,
-    paddingHorizontal: spacing.lg,
+    paddingHorizontal: spacing.md,
   },
   iconCircle: {
     width: 45,

@@ -22,8 +22,8 @@ export default function ParkingCard({ visible, parking, onClose }) {
   };
 
   const statusColor = getStatusColor(parking.status);
-  const occupancyPercent = parking.capacity > 0 
-    ? Math.round((parking.occupied / parking.capacity) * 100) 
+  const occupancyPercent = parking.capacity > 0
+    ? Math.round((parking.occupied / parking.capacity) * 100)
     : 0;
 
   return (
@@ -33,15 +33,15 @@ export default function ParkingCard({ visible, parking, onClose }) {
       animationType="fade"
       onRequestClose={onClose}
     >
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.overlay}
         activeOpacity={1}
         onPress={onClose}
       >
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.card}
           activeOpacity={1}
-          onPress={() => {}} // Prevent closing when touching card
+          onPress={() => { }} // Prevent closing when touching card
         >
           {/* Floating Glow Effect (Subtle) */}
           <View style={[styles.glow, { shadowColor: statusColor }]} />
@@ -104,7 +104,7 @@ export default function ParkingCard({ visible, parking, onClose }) {
           )}
 
           {/* Close Button */}
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.closeButton}
             onPress={onClose}
           >

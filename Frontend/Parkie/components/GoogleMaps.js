@@ -28,10 +28,10 @@ function ParkingPin({ status, available, selected }) {
 
 function getPinColor(status) {
   switch (status) {
-    case 'green':  return colors.statusGreen;
+    case 'green': return colors.statusGreen;
     case 'yellow': return colors.statusYellow;
-    case 'red':    return colors.statusRed;
-    default:       return colors.statusGray;
+    case 'red': return colors.statusRed;
+    default: return colors.statusGray;
   }
 }
 
