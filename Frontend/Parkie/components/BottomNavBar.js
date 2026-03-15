@@ -1,9 +1,8 @@
 import React from 'react';
 import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
-import { colors, spacing, typography } from '../theme/colors';
-import VoiceSearchBar from './VoiceSearchBar';
+import { colors, spacing } from '../theme/colors';
 
-export default function BottomNavBar({ onNavigationPress, onVoiceSearchComplete }) {
+export default function BottomNavBar({ onNavigationPress }) {
   return (
     <View style={styles.navBar}>
       <TouchableOpacity
@@ -15,10 +14,6 @@ export default function BottomNavBar({ onNavigationPress, onVoiceSearchComplete 
         </View>
         <Text style={styles.label}>NAVIGATE</Text>
       </TouchableOpacity>
-
-      <View style={styles.divider} />
-
-      <VoiceSearchBar onSearchComplete={onVoiceSearchComplete} />
     </View>
   );
 }
@@ -39,12 +34,6 @@ const styles = StyleSheet.create({
     shadowRadius: 15,
     elevation: 10,
     paddingHorizontal: spacing.md,
-  },
-  divider: {
-    width: 1,
-    height: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    marginHorizontal: spacing.sm,
   },
   navButton: {
     alignItems: 'center',
