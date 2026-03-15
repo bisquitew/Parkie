@@ -470,7 +470,25 @@ async def voice_search(audio: UploadFile = File(...)):
 
     # 1. Save uploaded audio to a temp file (Whisper API needs a file-like object)
     try:
-        suffix = os.path.splitext(audio.filename or ".wav")[1]
+        # Determine correct file extension from filename, content-type, or default to .m4a
+        suffix = ""
+        if audio.filename:
+            suffix = os.path.splitext(audio.filename)[1]
+        if not suffix and audio.content_type:
+            # Map common audio MIME types to extensions
+            mime_to_ext = {
+                "audio/mp4": ".m4a",
+                "audio/x-m4a": ".m4a",
+                "audio/m4a": ".m4a",
+                "audio/aac": ".aac",
+                "audio/mpeg": ".mp3",
+                "audio/wav": ".wav",
+                "audio/webm": ".webm",
+                "audio/ogg": ".ogg",
+            }
+            suffix = mime_to_ext.get(audio.content_type, "")
+        if not suffix:
+            suffix = ".m4a"  # Expo records m4a by default
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             content = await audio.read()
             tmp.write(content)
