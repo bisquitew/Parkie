@@ -3,7 +3,7 @@ import uuid
 import random
 import time
 
-BASE_URL = "http://localhost:8000"
+BASE_URL = "https://undateable-lashawnda-unnectareous.ngrok-free.dev"
 
 def test_health():
     print("Testing / (Health Check)...")

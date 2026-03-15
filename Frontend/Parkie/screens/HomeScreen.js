@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Alert, StatusBar, SafeAreaView } from 'react-native';
+import { View, StyleSheet, StatusBar, SafeAreaView } from 'react-native';
 import TopBar from '../components/TopBar';
 import GoogleMaps from '../components/GoogleMaps';
 import ParkingCard from '../components/ParkingCard';
 import BottomNavBar from '../components/BottomNavBar';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ErrorMessage from '../components/ErrorMessage';
+import NearbySearch from '../components/NearbySearch';
+import * as Location from 'expo-location';
 import { colors } from '../theme/colors';
 import { apiService } from '../lib/api';
 import { transformLotsData, transformLotData } from '../lib/dataTransformer';
@@ -18,6 +20,9 @@ export default function HomeScreen() {
   const [cardVisible, setCardVisible] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [searchVisible, setSearchVisible] = useState(false);
+  const [destinationCoord, setDestinationCoord] = useState(null);
+  const [userLocation, setUserLocation] = useState(null);
 
   const fetchParkingLots = async () => {
     try {
@@ -80,6 +85,25 @@ export default function HomeScreen() {
     };
   }, []);
 
+  // Fetch user location for search biasing
+  useEffect(() => {
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status !== 'granted') return;
+        const loc = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        setUserLocation({
+          latitude: loc.coords.latitude,
+          longitude: loc.coords.longitude,
+        });
+      } catch (e) {
+        console.warn('Could not get user location for search bias:', e);
+      }
+    })();
+  }, []);
+
   const handleManualRetry = () => {
     setError(null);
     setLoading(true);
@@ -92,9 +116,16 @@ export default function HomeScreen() {
   };
 
   const handleCardClose = () => setCardVisible(false);
-  const handleSettingsPress = () => Alert.alert('Settings', 'Coming soon!');
-  const handleNavigationPress = () => Alert.alert('Navigate', 'Coming soon!');
-  const handleTalkPress = () => Alert.alert('Talk', 'Voice feature coming soon!');
+  const handleNavigationPress = () => setSearchVisible(true);
+
+  const handleSearchComplete = (coord) => {
+    setDestinationCoord(coord);
+  };
+
+  const handleLotSelect = (lot) => {
+    setSelectedParking(lot);
+    setCardVisible(true);
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -102,14 +133,16 @@ export default function HomeScreen() {
       <View style={styles.container}>
         {/* Top Bar */}
         <View style={styles.topBarWrapper}>
-          <TopBar onSettingsPress={handleSettingsPress} />
+          <TopBar />
         </View>
 
         {/* Map in the middle */}
         <View style={styles.mapWrapper}>
           <GoogleMaps 
             parkingLots={parkingLots} 
-            onMarkerPress={handleMarkerPress} 
+            onMarkerPress={handleMarkerPress}
+            destinationCoord={destinationCoord}
+            onClearDestination={() => setDestinationCoord(null)}
           />
         </View>
 
@@ -117,7 +150,6 @@ export default function HomeScreen() {
         <View style={styles.bottomNavWrapper}>
           <BottomNavBar 
             onNavigationPress={handleNavigationPress}
-            onTalkPress={handleTalkPress}
           />
         </View>
 
@@ -126,6 +158,15 @@ export default function HomeScreen() {
           visible={cardVisible}
           parking={selectedParking}
           onClose={handleCardClose}
+        />
+
+        <NearbySearch
+          visible={searchVisible}
+          parkingLots={parkingLots}
+          userLocation={userLocation}
+          onClose={() => setSearchVisible(false)}
+          onLotSelect={handleLotSelect}
+          onSearchComplete={handleSearchComplete}
         />
 
         {loading && parkingLots.length === 0 && (

@@ -169,11 +169,13 @@ async def update_lot(payload: DetectionPayload):
 
     # Calculate available spots: capacity - detected_cars
     available_spots = max(0, capacity - payload.detected_cars)
+    status_color = get_status_color(capacity, available_spots)
 
-    # Update the available_spots and last_updated columns in Supabase
+    # Update the available_spots, status_color, and last_updated columns in Supabase
     update_response = supabase.table("parking_lots") \
         .update({
             "available_spots": available_spots,
+            "status_color": status_color,
             "last_updated": datetime.now(timezone.utc).isoformat()
         }) \
         .eq("id", payload.lot_id) \
@@ -187,7 +189,7 @@ async def update_lot(payload: DetectionPayload):
         "lot_id": payload.lot_id,
         "name": name,
         "available_spots": available_spots,
-        "status_color": get_status_color(capacity, available_spots),
+        "status_color": status_color,
         "last_updated": update_response.data[0].get("last_updated")
     }
 
@@ -204,12 +206,7 @@ async def get_all_lots(include_unverified: bool = Query(False)):
         query = query.eq("is_verified", True)
         
     response = query.execute()
-    lots = response.data
-    
-    for lot in lots:
-        lot["status_color"] = get_status_color(lot["capacity"], lot["available_spots"])
-        
-    return lots
+    return response.data
 
 @app.get("/my_lots/{owner_id}")
 async def get_my_lots(owner_id: str):
@@ -219,12 +216,7 @@ async def get_my_lots(owner_id: str):
     """
     try:
         response = supabase.table("parking_lots").select("*").eq("owner_id", owner_id).execute()
-        lots = response.data
-        
-        for lot in lots:
-            lot["status_color"] = get_status_color(lot["capacity"], lot["available_spots"])
-            
-        return lots
+        return response.data
     except Exception as e:
         # If owner_id is not a valid UUID or other DB error occurs
         raise HTTPException(status_code=400, detail=f"Invalid owner ID or database error: {str(e)}")
@@ -235,18 +227,11 @@ async def get_all_lot_colors() -> List[Dict[str, str]]:
     Returns only the ID and status_color for every VERIFIED lot.
     """
     response = supabase.table("parking_lots") \
-        .select("id", "capacity", "available_spots") \
+        .select("id", "status_color") \
         .eq("is_verified", True) \
         .execute()
     
-    colors_only = []
-    for lot in response.data:
-        colors_only.append({
-            "id": lot["id"],
-            "status_color": get_status_color(lot["capacity"], lot["available_spots"])
-        })
-        
-    return colors_only
+    return response.data
 
 @app.get("/lots/{lot_id}")
 async def get_lot(lot_id: str):
@@ -258,10 +243,7 @@ async def get_lot(lot_id: str):
     if not response.data:
         raise HTTPException(status_code=404, detail="Parking lot not found.")
 
-    lot = response.data[0]
-    lot["status_color"] = get_status_color(lot["capacity"], lot["available_spots"])
-    
-    return lot
+    return response.data[0]
 
 @app.post("/lots")
 async def create_lot(payload: LotSetupPayload):
@@ -270,6 +252,8 @@ async def create_lot(payload: LotSetupPayload):
     Sets is_verified to false for admin review.
     """
     capacity = payload.capacity if payload.capacity is not None else len(payload.slots_data)
+    available_spots = capacity
+    status_color = get_status_color(capacity, available_spots)
     
     insert_response = supabase.table("parking_lots") \
         .insert({
@@ -280,7 +264,8 @@ async def create_lot(payload: LotSetupPayload):
             "camera_url": payload.camera_url,
             "slots_data": payload.slots_data,
             "capacity": capacity,
-            "available_spots": capacity, 
+            "available_spots": available_spots,
+            "status_color": status_color,
             "is_verified": False,
             "last_updated": datetime.now(timezone.utc).isoformat()
         }) \
@@ -302,6 +287,10 @@ async def setup_lot(lot_id: str, payload: LotSetupPayload):
     Resets verification status to false.
     """
     capacity = payload.capacity if payload.capacity is not None else len(payload.slots_data)
+    # When setup is updated, we reset availability to full capacity (or re-calculate if needed)
+    # For now, let's reset it to capacity as it's a "re-setup"
+    available_spots = capacity
+    status_color = get_status_color(capacity, available_spots)
     
     update_response = supabase.table("parking_lots") \
         .update({
@@ -312,6 +301,8 @@ async def setup_lot(lot_id: str, payload: LotSetupPayload):
             "camera_url": payload.camera_url,
             "slots_data": payload.slots_data,
             "capacity": capacity,
+            "available_spots": available_spots,
+            "status_color": status_color,
             "is_verified": False, 
             "last_updated": datetime.now(timezone.utc).isoformat()
         }) \
@@ -355,13 +346,16 @@ async def setup_lot_post(lot_id: str, payload: LotAdminSetupPayload):
     Also updates the capacity based on the number of slots.
     """
     capacity = len(payload.slots_data)
+    available_spots = capacity
+    status_color = get_status_color(capacity, available_spots)
     
     update_response = supabase.table("parking_lots") \
         .update({
             "camera_url": payload.camera_url,
             "slots_data": payload.slots_data,
             "capacity": capacity,
-            "available_spots": capacity, 
+            "available_spots": available_spots,
+            "status_color": status_color,
             "last_updated": datetime.now(timezone.utc).isoformat()
         }) \
         .eq("id", lot_id) \

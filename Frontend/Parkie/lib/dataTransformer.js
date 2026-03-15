@@ -38,11 +38,19 @@ export const formatTimestamp = (isoString) => {
   if (!isoString) return 'Unknown';
 
   try {
-    // Append Z if missing and it looks like a UTC timestamp from Python without offset
+    // Normalize timestamp to always be parsed as UTC.
+    // PostgreSQL/Python may return: "2026-03-14 21:25:00" (space, no T, no Z)
+    // or "2026-03-14T21:25:00" (T, no Z). Both must be treated as UTC.
     let formattedIso = isoString;
-    //regex checks if the string ends with 'Z' or has a timezone offset, and if it contains 'T' (indicating it's a datetime)
-    if (typeof isoString === 'string' && !isoString.endsWith('Z') && !/[+-]\d{2}(?::?\d{2})?$/.test(isoString) && isoString.includes('T')) {
-      formattedIso = `${isoString}Z`;
+    if (typeof isoString === 'string') {
+      // Replace space separator with T (handles Python/Postgres format)
+      formattedIso = formattedIso.replace(' ', 'T');
+      // Strip microseconds if present (e.g. .123456) to avoid parse issues
+      formattedIso = formattedIso.replace(/\.\d+$/, '');
+      // Append Z if there is no timezone info at all
+      if (!formattedIso.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(formattedIso)) {
+        formattedIso = `${formattedIso}Z`;
+      }
     }
 
     const date = new Date(formattedIso);

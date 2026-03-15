@@ -117,6 +117,7 @@ python admin_verify.py
 - `name`: `text`
 - `capacity`: `int`
 - `available_spots`: `int`
+- `status_color`: `text` (e.g., "green", "yellow", "red", "gray")
 - `last_updated`: `timestamptz`
 - `camera_url`: `text`
 - `slots_data`: `jsonb` (Array of 8-coordinate vectors)

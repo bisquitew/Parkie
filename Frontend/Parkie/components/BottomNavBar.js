@@ -2,7 +2,7 @@ import React from 'react';
 import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
 import { colors, spacing, typography } from '../theme/colors';
 
-export default function BottomNavBar({ onNavigationPress, onTalkPress }) {
+export default function BottomNavBar({ onNavigationPress }) {
   return (
     <View style={styles.navBar}>
       <TouchableOpacity 
@@ -14,18 +14,6 @@ export default function BottomNavBar({ onNavigationPress, onTalkPress }) {
         </View>
         <Text style={styles.label}>NAVIGATE</Text>
       </TouchableOpacity>
-
-      <View style={styles.divider} />
-
-      <TouchableOpacity 
-        style={styles.navButton}
-        onPress={onTalkPress}
-      >
-        <View style={styles.iconCircle}>
-          <Text style={styles.icon}>🎤</Text>
-        </View>
-        <Text style={styles.label}>VOICE</Text>
-      </TouchableOpacity>
     </View>
   );
 }
@@ -33,7 +21,7 @@ export default function BottomNavBar({ onNavigationPress, onTalkPress }) {
 const styles = StyleSheet.create({
   navBar: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'center',
     alignItems: 'center',
     paddingVertical: spacing.sm,
     backgroundColor: colors.glassBackground,
@@ -47,14 +35,9 @@ const styles = StyleSheet.create({
     elevation: 10,
   },
   navButton: {
-    flex: 1,
     alignItems: 'center',
     paddingVertical: spacing.xs,
-  },
-  divider: {
-    width: 1,
-    height: '60%',
-    backgroundColor: colors.glassBorder,
+    paddingHorizontal: spacing.lg,
   },
   iconCircle: {
     width: 45,

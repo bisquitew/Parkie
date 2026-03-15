@@ -16,41 +16,13 @@
     },
     "ios": {
       "supportsTablet": true,
-      "config": {
-        "googleMapsApiKey": "AIzaSyA8D34j8YwXlwWqw_K9IlPHQuCvRFdhAVc"
-      },
+      "bundleIdentifier": "com.bisquitew.parkie",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Parkie needs your location to find parking spots near you."
       }
     },
-    "android": {
-      "config": {
-        "googleMaps": {
-          "apiKey": "AIzaSyA8D34j8YwXlwWqw_K9IlPHQuCvRFdhAVc"
-        }
-      },
-      "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
-      },
-      "permissions": [
-        "ACCESS_COARSE_LOCATION",
-        "ACCESS_FINE_LOCATION",
-        "INTERNET"
-      ]
-    },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      [
-        "react-native-maps",
-        {
-          "androidGoogleMapsApiKey": "AIzaSyA8D34j8YwXlwWqw_K9IlPHQuCvRFdhAVc"
-        }
-      ]
-    ]
+    }
   }
 }
