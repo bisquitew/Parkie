@@ -150,6 +150,7 @@ export default function HomeScreen() {
         <View style={styles.bottomNavWrapper}>
           <BottomNavBar
             onNavigationPress={handleNavigationPress}
+            onVoiceSearchComplete={handleSearchComplete}
           />
         </View>
 

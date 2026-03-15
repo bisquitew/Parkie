@@ -18,11 +18,15 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.bisquitew.parkie",
       "infoPlist": {
-        "NSLocationWhenInUseUsageDescription": "Parkie needs your location to find parking spots near you."
+        "NSLocationWhenInUseUsageDescription": "Parkie needs your location to find parking spots near you.",
+        "NSMicrophoneUsageDescription": "Parkie needs access to your microphone for voice commands."
       }
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      "expo-audio"
+    ]
   }
 }

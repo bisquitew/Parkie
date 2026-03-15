@@ -3,7 +3,7 @@ import { View, TouchableOpacity, StyleSheet, Text } from 'react-native';
 import { colors, spacing, typography } from '../theme/colors';
 import VoiceSearchBar from './VoiceSearchBar';
 
-export default function BottomNavBar({ onNavigationPress }) {
+export default function BottomNavBar({ onNavigationPress, onVoiceSearchComplete }) {
   return (
     <View style={styles.navBar}>
       <TouchableOpacity
@@ -18,7 +18,7 @@ export default function BottomNavBar({ onNavigationPress }) {
 
       <View style={styles.divider} />
 
-      <VoiceSearchBar />
+      <VoiceSearchBar onSearchComplete={onVoiceSearchComplete} />
     </View>
   );
 }

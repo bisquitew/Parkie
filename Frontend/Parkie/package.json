@@ -12,12 +12,16 @@
     "@expo/vector-icons": "^15.0.2",
     "@supabase/supabase-js": "^2.99.1",
     "expo": "^55.0.6",
-    "expo-av": "^16.0.8",
+    "expo-audio": "~55.0.8",
     "expo-location": "~55.1.2",
     "expo-status-bar": "^55.0.4",
     "react": "19.2.0",
     "react-native": "0.83.2",
-    "react-native-maps": "^1.27.2"
+    "react-native-maps": "1.26.20"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@types/react": "~19.2.10",
+    "typescript": "~5.9.2"
+  }
 }
