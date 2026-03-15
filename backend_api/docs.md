@@ -86,6 +86,14 @@ This FastAPI service acts as the "glue" between the **AI Vision** component (det
 - **Query Params:** `verified` (bool, default: true)
 - **Logic:** Partially updates the lot to set its verification status.
 
+### 13. Admin: Get Pending Lots (`GET /lots/pending`)
+**Used by:** Admin Dashboard.
+- **Response:** Returns all unverified parking lots awaiting admin review.
+
+### 14. Admin: Reject/Delete Lot (`DELETE /lots/{lot_id}`)
+**Used by:** Admin Dashboard.
+- **Logic:** Permanently deletes a parking lot (admin rejection).
+
 ### 14. Get Lot Configuration (`GET /lots/{lot_id}/config`)
 **Used by:** `ai_vision` script.
 - **Response:** Returns `camera_url` and `slots_data`.

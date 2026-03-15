@@ -64,9 +64,53 @@ export const api = {
     return response.json();
   },
 
+  async patch(endpoint: string, params?: Record<string, string>) {
+    const url = new URL(`${API_BASE_URL}${endpoint}`);
+    if (params) {
+      Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
+    }
+    const response = await fetch(url.toString(), {
+      method: 'PATCH',
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
+    });
+    if (!response.ok) {
+      let errorMsg = 'API request failed';
+      try {
+        const error = await response.json();
+        errorMsg = error.detail || errorMsg;
+      } catch (e) {
+        errorMsg = await response.text();
+      }
+      throw new Error(errorMsg);
+    }
+    return response.json();
+  },
+
+  async delete(endpoint: string) {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method: 'DELETE',
+      headers: {
+        'ngrok-skip-browser-warning': 'true',
+      },
+    });
+    if (!response.ok) {
+      let errorMsg = 'API request failed';
+      try {
+        const error = await response.json();
+        errorMsg = error.detail || errorMsg;
+      } catch (e) {
+        errorMsg = await response.text();
+      }
+      throw new Error(errorMsg);
+    }
+    return response.json();
+  },
+
   async captureFrame(cameraUrl: string) {
     const data = await this.post('/capture_frame', { camera_url: cameraUrl });
-    return data.image; // Returns base64 string
+    return data.image;
   },
 
   async saveLotSetup(lotId: string, cameraUrl: string, slotsData: number[][]) {
@@ -74,5 +118,17 @@ export const api = {
       camera_url: cameraUrl,
       slots_data: slotsData
     });
+  },
+
+  async getPendingLots() {
+    return this.get('/lots/pending');
+  },
+
+  async verifyLot(lotId: string) {
+    return this.patch(`/lots/${lotId}/verify`, { verified: 'true' });
+  },
+
+  async rejectLot(lotId: string) {
+    return this.delete(`/lots/${lotId}`);
   }
 };

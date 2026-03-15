@@ -6,6 +6,7 @@ interface User {
   user_id: string;
   name: string;
   email: string;
+  role: 'owner' | 'admin';
 }
 
 interface ParkingLot {
@@ -18,6 +19,8 @@ interface ParkingLot {
   capacity: number;
   available_spots: number;
   slots_data?: number[][];
+  is_verified?: boolean;
+  owner_id?: string;
 }
 
 // --- State ---
@@ -30,7 +33,14 @@ try {
 }
 let currentLots: ParkingLot[] = [];
 let currentLot: ParkingLot | null = null;
-let currentView: 'auth' | 'dashboard' | 'lot-view' = currentUser ? 'dashboard' : 'auth';
+let adminTab: 'pending' | 'all' = 'pending';
+
+function getDefaultView(): 'auth' | 'dashboard' | 'admin' | 'lot-view' {
+  if (!currentUser) return 'auth';
+  return currentUser.role === 'admin' ? 'admin' : 'dashboard';
+}
+
+let currentView: 'auth' | 'dashboard' | 'admin' | 'lot-view' = getDefaultView();
 
 // --- Components ---
 
@@ -62,7 +72,7 @@ function renderAuth() {
       const user = await api.post('/login', { email, password });
       currentUser = user;
       localStorage.setItem('user', JSON.stringify(user));
-      navigate('dashboard');
+      navigate(user.role === 'admin' ? 'admin' : 'dashboard');
     } catch (err: any) {
       alert(err.message);
     }
@@ -96,7 +106,7 @@ function renderRegister() {
       const user = await api.post('/register', { name, email, password });
       currentUser = user;
       localStorage.setItem('user', JSON.stringify(user));
-      navigate('dashboard');
+      navigate(user.role === 'admin' ? 'admin' : 'dashboard');
     } catch (err: any) {
       alert(err.message);
     }
@@ -223,12 +233,160 @@ async function refreshLots() {
   }
 }
 
+// --- Admin Panel ---
+
+async function renderAdminPanel() {
+  const app = document.querySelector<HTMLDivElement>('#app')!;
+  app.innerHTML = `
+    <header class="dashboard-header">
+      <h1>Admin Panel</h1>
+      <button id="logout" class="counter">Logout</button>
+    </header>
+    <section id="center">
+      <div class="admin-tabs">
+        <button class="tab-btn ${adminTab === 'pending' ? 'active' : ''}" data-tab="pending">
+          Pending Lots
+        </button>
+        <button class="tab-btn ${adminTab === 'all' ? 'active' : ''}" data-tab="all">
+          All Verified Lots
+        </button>
+      </div>
+      <div id="admin-lots-list" class="lots-grid">
+        <p>Loading lots...</p>
+      </div>
+    </section>
+  `;
+
+  // Logout
+  document.querySelector('#logout')?.addEventListener('click', () => {
+    currentUser = null;
+    localStorage.removeItem('user');
+    navigate('auth');
+  });
+
+  // Tab switching
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      adminTab = btn.getAttribute('data-tab') as 'pending' | 'all';
+      renderAdminPanel();
+    });
+  });
+
+  await refreshAdminLots();
+}
+
+async function refreshAdminLots() {
+  const list = document.querySelector('#admin-lots-list')!;
+
+  try {
+    let lots: ParkingLot[];
+    if (adminTab === 'pending') {
+      lots = await api.getPendingLots();
+    } else {
+      lots = await api.get('/lots');
+    }
+
+    if (lots.length === 0) {
+      list.innerHTML = adminTab === 'pending'
+        ? '<p>No pending lots to review. All caught up! ✅</p>'
+        : '<p>No verified lots yet.</p>';
+      return;
+    }
+
+    if (adminTab === 'pending') {
+      list.innerHTML = lots.map(lot => `
+        <div class="lot-card admin-lot-card" data-id="${lot.id}">
+          <div class="status-indicator" style="background-color: orange"></div>
+          <div class="lot-info">
+            <h3>${lot.name}</h3>
+            <p>📍 ${lot.latitude.toFixed(4)}, ${lot.longitude.toFixed(4)}</p>
+            <p>🅿️ ${lot.capacity} spots · 📷 ${lot.camera_url ? 'Camera set' : 'No camera'}</p>
+            <p>🧩 ${lot.slots_data?.length || 0} slot(s) plotted</p>
+          </div>
+          <div class="admin-actions">
+            <button class="action-btn verify-btn" data-id="${lot.id}" title="Verify">✅</button>
+            <button class="action-btn reject-btn" data-id="${lot.id}" title="Reject">❌</button>
+          </div>
+        </div>
+      `).join('');
+
+      // Verify buttons
+      document.querySelectorAll('.verify-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const lotId = btn.getAttribute('data-id')!;
+          const lotName = lots.find(l => l.id === lotId)?.name || 'this lot';
+          if (!confirm(`Verify "${lotName}"? It will appear in the mobile app.`)) return;
+          try {
+            (btn as HTMLButtonElement).disabled = true;
+            await api.verifyLot(lotId);
+            await refreshAdminLots();
+          } catch (err: any) {
+            alert('Failed to verify: ' + err.message);
+            (btn as HTMLButtonElement).disabled = false;
+          }
+        });
+      });
+
+      // Reject buttons
+      document.querySelectorAll('.reject-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const lotId = btn.getAttribute('data-id')!;
+          const lotName = lots.find(l => l.id === lotId)?.name || 'this lot';
+          if (!confirm(`Reject and delete "${lotName}"? This cannot be undone.`)) return;
+          try {
+            (btn as HTMLButtonElement).disabled = true;
+            await api.rejectLot(lotId);
+            await refreshAdminLots();
+          } catch (err: any) {
+            alert('Failed to reject: ' + err.message);
+            (btn as HTMLButtonElement).disabled = false;
+          }
+        });
+      });
+
+      // Click card to inspect lot
+      document.querySelectorAll('.admin-lot-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const id = card.getAttribute('data-id');
+          currentLot = lots.find(l => l.id === id) || null;
+          navigate('lot-view');
+        });
+      });
+
+    } else {
+      // All verified lots (read-only view)
+      list.innerHTML = lots.map(lot => `
+        <div class="lot-card" data-id="${lot.id}">
+          <div class="status-indicator" style="background-color: ${lot.status_color}"></div>
+          <div class="lot-info">
+            <h3>${lot.name}</h3>
+            <p>${lot.available_spots} / ${lot.capacity} spots available</p>
+          </div>
+        </div>
+      `).join('');
+
+      document.querySelectorAll('.lot-card').forEach(card => {
+        card.addEventListener('click', () => {
+          const id = card.getAttribute('data-id');
+          currentLot = lots.find(l => l.id === id) || null;
+          navigate('lot-view');
+        });
+      });
+    }
+  } catch (err: any) {
+    list.innerHTML = `<p class="error">Error: ${err.message}</p>`;
+  }
+}
+
 function renderLotView() {
   if (!currentLot) {
-    navigate('dashboard');
+    navigate(currentUser?.role === 'admin' ? 'admin' : 'dashboard');
     return;
   }
 
+  const backTarget = currentUser?.role === 'admin' ? 'admin' : 'dashboard';
   const app = document.querySelector<HTMLDivElement>('#app')!;
   app.innerHTML = `
     <header class="dashboard-header">
@@ -267,7 +425,7 @@ function renderLotView() {
     </section>
   `;
 
-  document.querySelector('#back-to-dashboard')?.addEventListener('click', () => navigate('dashboard'));
+  document.querySelector('#back-to-dashboard')?.addEventListener('click', () => navigate(backTarget));
   
   const captureBtn = document.querySelector('#capture-frame-btn') as HTMLButtonElement;
   const cameraInput = document.querySelector('#camera-url-input') as HTMLInputElement;
@@ -398,7 +556,7 @@ function initCanvas(base64Image: string, cameraUrl: string) {
       if (!currentLot) return;
       await api.saveLotSetup(currentLot.id, cameraUrl, slots_data);
       alert("Configuration saved successfully!");
-      navigate('dashboard');
+      navigate(currentUser?.role === 'admin' ? 'admin' : 'dashboard');
     } catch (err: any) {
       alert(`Error saving configuration: ${err.message}`);
     } finally {
@@ -454,11 +612,12 @@ function initCanvas(base64Image: string, cameraUrl: string) {
 
 // --- Navigation ---
 
-function navigate(view: 'auth' | 'dashboard' | 'lot-view') {
+function navigate(view: 'auth' | 'dashboard' | 'admin' | 'lot-view') {
   currentView = view;
   points = []; // Reset canvas points on navigation
   if (view === 'auth') renderAuth();
   else if (view === 'dashboard') renderDashboard();
+  else if (view === 'admin') renderAdminPanel();
   else if (view === 'lot-view') renderLotView();
 }
 

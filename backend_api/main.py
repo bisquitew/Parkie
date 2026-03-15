@@ -127,7 +127,8 @@ async def register(payload: UserSignup):
         "status": "success",
         "user_id": user["id"],
         "name": user["name"],
-        "email": user["email"]
+        "email": user["email"],
+        "role": user.get("role", "owner")
     }
 
 @app.post("/login")
@@ -151,7 +152,8 @@ async def login(payload: UserLogin):
         "status": "success",
         "user_id": user["id"],
         "name": user["name"],
-        "email": user["email"]
+        "email": user["email"],
+        "role": user.get("role", "owner")
     }
 
 # --- Parking Lot Management Endpoints ---
@@ -417,6 +419,39 @@ async def get_lot_config(lot_id: str):
         raise HTTPException(status_code=400, detail="Lot configuration is incomplete.")
 
     return config
+
+# --- Admin Endpoints ---
+
+@app.get("/lots/pending")
+async def get_pending_lots():
+    """
+    Returns all unverified parking lots for admin review.
+    Includes owner information.
+    """
+    response = supabase.table("parking_lots") \
+        .select("*") \
+        .eq("is_verified", False) \
+        .execute()
+    
+    return response.data
+
+@app.delete("/lots/{lot_id}")
+async def delete_lot(lot_id: str):
+    """
+    Deletes a parking lot (admin rejection).
+    """
+    # Check if lot exists first
+    check = supabase.table("parking_lots").select("id").eq("id", lot_id).execute()
+    if not check.data:
+        raise HTTPException(status_code=404, detail=f"Parking lot with ID '{lot_id}' not found.")
+    
+    supabase.table("parking_lots").delete().eq("id", lot_id).execute()
+    
+    return {
+        "status": "success",
+        "lot_id": lot_id,
+        "message": "Parking lot has been rejected and removed."
+    }
 
 # --- Voice Search Endpoint ---
 
