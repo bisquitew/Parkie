@@ -513,8 +513,8 @@ async def voice_search(audio: UploadFile = File(...)):
         # 2. Transcribe with Whisper (Explicitly passing the filename for format detection)
         with open(perm_path, "rb") as audio_file:
             # Wrap the file in a tuple to provide a filename metadata to the multipart request
-            # This helps OpenAI's API detect the format from the extension
-            file_to_send = (f"recording{suffix}", audio_file, audio.content_type)
+            # OpenAI prefers audio/mp4 for .m4a files to decode correctly
+            file_to_send = (f"recording{suffix}", audio_file, "audio/mp4")
             
             transcription = openai_client.audio.transcriptions.create(
                 model="whisper-1",

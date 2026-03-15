@@ -3,6 +3,7 @@ import { View, TouchableOpacity, StyleSheet, Animated, Text, ActivityIndicator }
 import { Ionicons } from '@expo/vector-icons';
 import { colors, spacing } from '../theme/colors';
 import { API_CONFIG } from '../config/api';
+import * as FileSystem from 'expo-file-system/legacy';
 
 // SDK 55 uses expo-audio instead of expo-av
 let AudioModule = null;
@@ -54,7 +55,7 @@ export default function VoiceSearchBar({ onSearchComplete }) {
       });
 
       // Create new recorder instance
-      const newRecorder = new NativeModule.AudioRecorder(RecordingPresets.HIGH_QUALITY);
+      const newRecorder = new NativeModule.AudioRecorder(RecordingPresets.LOW_QUALITY);
       await newRecorder.prepareToRecordAsync();
       
       newRecorder.record();
@@ -74,6 +75,24 @@ export default function VoiceSearchBar({ onSearchComplete }) {
     try {
       await recorder.stop();
       const uri = recorder.uri;
+      console.log('Finalizing recording at:', uri);
+
+      // Wait up to 1 second for the file to be fully written to disk (prevents corruption)
+      let fileReady = false;
+      for (let i = 0; i < 10; i++) {
+        const info = await FileSystem.getInfoAsync(uri);
+        if (info.exists && info.size > 0) {
+          console.log(`File is ready! Size: ${info.size} bytes`);
+          fileReady = true;
+          break;
+        }
+        console.log(`Waiting for file to flush... (${i+1})`);
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+
+      if (!fileReady) {
+        throw new Error('Recording file remained empty or missing after stop.');
+      }
       
       const formData = new FormData();
       formData.append('audio', {
