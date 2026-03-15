@@ -356,18 +356,39 @@ async function refreshAdminLots() {
       });
 
     } else {
-      // All verified lots (read-only view)
+      // All verified lots with unverify option
       list.innerHTML = lots.map(lot => `
-        <div class="lot-card" data-id="${lot.id}">
+        <div class="lot-card admin-lot-card" data-id="${lot.id}">
           <div class="status-indicator" style="background-color: ${lot.status_color}"></div>
           <div class="lot-info">
             <h3>${lot.name}</h3>
             <p>${lot.available_spots} / ${lot.capacity} spots available</p>
           </div>
+          <div class="admin-actions">
+            <button class="action-btn unverify-btn" data-id="${lot.id}" title="Unverify">🔒</button>
+          </div>
         </div>
       `).join('');
 
-      document.querySelectorAll('.lot-card').forEach(card => {
+      // Unverify buttons
+      document.querySelectorAll('.unverify-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const lotId = btn.getAttribute('data-id')!;
+          const lotName = lots.find(l => l.id === lotId)?.name || 'this lot';
+          if (!confirm(`Unverify "${lotName}"? It will be removed from the mobile app.`)) return;
+          try {
+            (btn as HTMLButtonElement).disabled = true;
+            await api.unverifyLot(lotId);
+            await refreshAdminLots();
+          } catch (err: any) {
+            alert('Failed to unverify: ' + err.message);
+            (btn as HTMLButtonElement).disabled = false;
+          }
+        });
+      });
+
+      document.querySelectorAll('.admin-lot-card').forEach(card => {
         card.addEventListener('click', () => {
           const id = card.getAttribute('data-id');
           currentLot = lots.find(l => l.id === id) || null;

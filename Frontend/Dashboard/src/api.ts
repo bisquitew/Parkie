@@ -128,6 +128,10 @@ export const api = {
     return this.patch(`/lots/${lotId}/verify`, { verified: 'true' });
   },
 
+  async unverifyLot(lotId: string) {
+    return this.patch(`/lots/${lotId}/verify`, { verified: 'false' });
+  },
+
   async rejectLot(lotId: string) {
     return this.delete(`/lots/${lotId}`);
   }

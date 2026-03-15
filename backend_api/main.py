@@ -242,6 +242,18 @@ async def get_all_lot_colors() -> List[Dict[str, str]]:
     
     return response.data
 
+@app.get("/lots/pending")
+async def get_pending_lots():
+    """
+    Returns all unverified parking lots for admin review.
+    """
+    response = supabase.table("parking_lots") \
+        .select("*") \
+        .eq("is_verified", False) \
+        .execute()
+    
+    return response.data
+
 @app.get("/lots/{lot_id}")
 async def get_lot(lot_id: str):
     """
@@ -421,19 +433,6 @@ async def get_lot_config(lot_id: str):
     return config
 
 # --- Admin Endpoints ---
-
-@app.get("/lots/pending")
-async def get_pending_lots():
-    """
-    Returns all unverified parking lots for admin review.
-    Includes owner information.
-    """
-    response = supabase.table("parking_lots") \
-        .select("*") \
-        .eq("is_verified", False) \
-        .execute()
-    
-    return response.data
 
 @app.delete("/lots/{lot_id}")
 async def delete_lot(lot_id: str):
