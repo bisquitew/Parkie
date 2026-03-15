@@ -209,35 +209,29 @@ def main():
         cv2.namedWindow("Vision Agent", cv2.WINDOW_NORMAL)
         cv2.resizeWindow("Vision Agent", 1280, 720)
 
+    fps   = cap.get(cv2.CAP_PROP_FPS) or 30
+    delay = max(1, int(1000 / fps))
+    print(f"Smooth sync enabled @ {fps:.1f} FPS (Delay: {delay}ms)")
+
     while cap.isOpened():
+        ret, frame = cap.read()
+        if not ret:
+            if isinstance(source, str) and os.path.exists(source):
+                cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
+                continue
+            break
+
         now = time.time()
         
-        # ── 1. Update Display & AI (every 5s) ──────────────────────
+        # ── 1. AI Inference (every 5s) ────────────────────────────
         if now - last_infer >= args.infer_every:
-            # Jump forward for video files to stay real-time
-            if isinstance(source, str) and os.path.exists(source):
-                # Calculate target position based on actual time elapsed
-                fps = cap.get(cv2.CAP_PROP_FPS)
-                if fps > 0:
-                    current_frame = cap.get(cv2.CAP_PROP_POS_FRAMES)
-                    cap.set(cv2.CAP_PROP_POS_FRAMES, current_frame + int(args.infer_every * fps))
-            
-            # Read only ONE frame
-            ret, frame = cap.read()
-            if not ret:
-                if isinstance(source, str) and os.path.exists(source):
-                    cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                    ret, frame = cap.read()
-                    if not ret: break
-                else: break
-
-            # Inference
+            # Run YOLO on the current frame
             results   = model(frame, classes=VEHICLE_CLASSES,
                                conf=args.conf, imgsz=args.imgsz, verbose=False)
             last_dets = results[0].boxes.data.tolist()
             last_infer = now
 
-            # Update occupancy state
+            # Update occupancy state based on the inference frame
             occupied_count = 0
             for i, poly in enumerate(slots):
                 raw = any(car_in_slot(poly, d[:4], frame_w=W, frame_h=H, shrink=args.shrink) for d in last_dets)
@@ -245,25 +239,22 @@ def main():
                 slot_states[i] = sum(history[i]) > len(history[i]) / 2
                 if slot_states[i]:
                     occupied_count += 1
+            print(f"[{time.strftime('%H:%M:%S')}] AI Update: {occupied_count}/{len(slots)}")
 
-            print(f"[{time.strftime('%H:%M:%S')}] Detected: {occupied_count}/{len(slots)}")
+        # ── 2. Display (Every Frame - 1x Speed) ───────────────────
+        if args.debug:
+            # We draw using the LAST known detections to keep the overlay visible
+            draw_overlay(frame, slots, slot_states, last_dets, model.names, W)
+            cv2.imshow("Vision Agent", frame)
 
-            # Draw & Display
-            if args.debug:
-                draw_overlay(frame, slots, slot_states, last_dets, model.names, W)
-                cv2.imshow("Vision Agent", frame)
-
-        # ── 2. Backend report (every 15s) ─────────────────────────
+        # ── 3. Backend report (every 15s) ─────────────────────────
         if now - last_report >= args.report_every:
-            # Report the majority consensus of the smoothing window
-            # This ensures we don't report a car that just drove through
             stable_occupied = sum(1 for states in history.values() if sum(states) > len(states)/2)
             update_occupancy(stable_occupied)
             last_report = now
 
-        # Keep OS responsive
-        key = cv2.waitKey(100) # Sleep 100ms
-        if key & 0xFF == ord('q'):
+        # Maintain native video speed
+        if cv2.waitKey(delay) & 0xFF == ord('q'):
             break
 
     cap.release()

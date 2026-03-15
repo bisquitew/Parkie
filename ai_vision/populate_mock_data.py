@@ -19,7 +19,11 @@ LOCATIONS = [
     {"name": "Piata 700 Business",  "lat": 45.7567, "lon": 21.2223, "cap": 110},
     {"name": "UVT Sports Field",    "lat": 45.7480, "lon": 21.2335, "cap": 50},
     {"name": "Stadion Dan Paltinisanu", "lat": 45.7405, "lon": 21.2435, "cap": 800},
-    {"name": "UVT Headquarters",   "lat": 45.7483, "lon": 21.2315, "cap": 40}
+    {"name": "UVT Headquarters",   "lat": 45.7483, "lon": 21.2315, "cap": 40},
+    {"name": "Iulius Town - VIP",   "lat": 45.7663, "lon": 21.2285, "cap": 50},
+    {"name": "Iulius Town - P2 Multi-level", "lat": 45.7680, "lon": 21.2280, "cap": 450},
+    {"name": "Iulius Town - P5 Open-air", "lat": 45.7675, "lon": 21.2320, "cap": 200},
+    {"name": "Iulius Town - UBC 0", "lat": 45.7645, "lon": 21.2295, "cap": 120}
 ]
 
 def generate_dummy_slots(count):
@@ -114,26 +118,40 @@ def run_population():
     # 4. Dynamic Update Loop
     while True:
         for lot in lot_ids:
-            # 1 in 20 chance to start a "rush" if not already rushing and not full
-            if not lot.get("is_rushing") and lot["current"] < lot["cap"] * 0.8:
+            # 1. Surge Management (Filling or Emptying)
+            # 5% chance to start a filling surge (if not already surging and not full)
+            if not lot.get("surge") and lot["current"] < lot["cap"] * 0.7:
                 if random.random() < 0.05:
-                    lot["is_rushing"] = True
-                    print(f"🔥 RUSH START: {lot['name']} is filling up fast!")
+                    lot["surge"] = "filling"
+                    print(f"🔥 RUSH START: {lot['name']} is filling up!")
 
-            if lot.get("is_rushing"):
-                # Rushing: +10% to +15% of capacity per 10s
-                change = random.randint(int(lot["cap"] * 0.1), int(lot["cap"] * 0.15))
+            # 5% chance to start an emptying surge (if not already surging and not empty)
+            if not lot.get("surge") and lot["current"] > lot["cap"] * 0.3:
+                if random.random() < 0.05:
+                    lot["surge"] = "emptying"
+                    print(f"🍃 EXIT START: {lot['name']} is freeing up!")
+
+            # 2. Process Surges
+            if lot.get("surge") == "filling":
+                change = random.randint(int(lot["cap"] * 0.08), int(lot["cap"] * 0.12))
                 lot["current"] = min(lot["cap"], lot["current"] + change)
-                
-                # End rush if nearly full
                 if lot["current"] >= lot["cap"] * 0.95:
-                    lot["is_rushing"] = False
-                    print(f"🛑 RUSH END: {lot['name']} is now full.")
+                    lot["surge"] = None
+                    print(f"🛑 RUSH END: {lot['name']} is full.")
+
+            elif lot.get("surge") == "emptying":
+                change = random.randint(int(lot["cap"] * 0.08), int(lot["cap"] * 0.12))
+                lot["current"] = max(0, lot["current"] - change)
+                if lot["current"] <= lot["cap"] * 0.10:
+                    lot["surge"] = None
+                    print(f"✅ EXIT END: {lot['name']} is mostly empty.")
+
             else:
                 # Normal fluctuation: +/- 2 cars
                 change = random.choice([-2, -1, 0, 1, 2])
                 lot["current"] = max(0, min(lot["cap"], lot["current"] + change))
             
+            # 3. Report to backend
             try:
                 requests.post(f"{BACKEND_URL}/update_lot", json={
                     "lot_id": lot["id"],
@@ -142,7 +160,7 @@ def run_population():
             except:
                 pass
         
-        print(f"[{time.strftime('%H:%M:%S')}] Updated {len(lot_ids)} lots.")
+        print(f"[{time.strftime('%H:%M:%S')}] Swapped occupancy for {len(lot_ids)} lots.")
         time.sleep(10)
 
 if __name__ == "__main__":
