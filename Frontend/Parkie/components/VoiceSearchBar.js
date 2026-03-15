@@ -72,7 +72,7 @@ export default function VoiceSearchBar({ onSearchComplete }) {
     setIsRecording(false);
     setIsUploading(true);
     try {
-      recorder.stop();
+      await recorder.stop();
       const uri = recorder.uri;
       console.log('Recording stopped at', uri);
 

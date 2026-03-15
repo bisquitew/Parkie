@@ -55,26 +55,58 @@ export default function HomeScreen() {
           table: 'parking_lots',
         },
         (payload) => {
-          if (payload.eventType === 'UPDATE') {
-            const updatedLot = transformLotData(payload.new);
-            setParkingLots((prevLots) =>
-              prevLots.map((lot) => (lot.id === updatedLot.id ? updatedLot : lot))
-            );
+          const { eventType, new: newRecord, old: oldRecord } = payload;
+          
+          if (eventType === 'UPDATE' || eventType === 'INSERT') {
+            const isVerified = newRecord.is_verified;
+            const transformedLot = transformLotData(newRecord);
 
-            // If the selected lot was updated, update its state too
+            setParkingLots((prevLots) => {
+              const exists = prevLots.find((l) => l.id === transformedLot.id);
+
+              if (isVerified) {
+                if (exists) {
+                  // Update existing lot
+                  return prevLots.map((l) => (l.id === transformedLot.id ? transformedLot : l));
+                } else {
+                  // Add newly verified lot
+                  return [...prevLots, transformedLot];
+                }
+              } else {
+                // Remove if unverified
+                return prevLots.filter((l) => l.id !== transformedLot.id);
+              }
+            });
+
+            // Update selected parking if it matches and is still verified
             setSelectedParking((prevSelected) => {
-              if (prevSelected && prevSelected.id === updatedLot.id) {
-                return updatedLot;
+              if (prevSelected && prevSelected.id === transformedLot.id) {
+                return isVerified ? transformedLot : null;
               }
               return prevSelected;
             });
-          } else if (payload.eventType === 'INSERT') {
-            const newLot = transformLotData(payload.new);
-            setParkingLots((prevLots) => [...prevLots, newLot]);
-          } else if (payload.eventType === 'DELETE') {
+
+            // Close card if the selected lot just became unverified
+            if (!isVerified) {
+              setSelectedParking((prevSelected) => {
+                if (prevSelected && prevSelected.id === transformedLot.id) {
+                  setCardVisible(false);
+                  return null;
+                }
+                return prevSelected;
+              });
+            }
+          } else if (eventType === 'DELETE') {
             setParkingLots((prevLots) =>
-              prevLots.filter((lot) => lot.id !== payload.old.id)
+              prevLots.filter((lot) => lot.id !== oldRecord.id)
             );
+            setSelectedParking((prevSelected) => {
+              if (prevSelected && prevSelected.id === oldRecord.id) {
+                setCardVisible(false);
+                return null;
+              }
+              return prevSelected;
+            });
           }
         }
       )
