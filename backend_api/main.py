@@ -470,6 +470,13 @@ async def voice_search(audio: UploadFile = File(...)):
 
     # 1. Save uploaded audio to a temp file (Whisper API needs a file-like object)
     try:
+        print(f"DEBUG: Received audio file: {audio.filename}, content_type: {audio.content_type}")
+        content = await audio.read()
+        print(f"DEBUG: Audio content size: {len(content)} bytes")
+        
+        if len(content) == 0:
+            raise HTTPException(status_code=400, detail="Received empty audio file.")
+
         # Determine correct file extension from filename, content-type, or default to .m4a
         suffix = ""
         if audio.filename:
@@ -490,18 +497,23 @@ async def voice_search(audio: UploadFile = File(...)):
         if not suffix:
             suffix = ".m4a"  # Expo records m4a by default
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-            content = await audio.read()
             tmp.write(content)
             tmp_path = tmp.name
+            print(f"DEBUG: Saved to temp file: {tmp_path}")
 
-        # 2. Transcribe with Whisper
+        # 2. Transcribe with Whisper (Explicitly passing the filename for format detection)
         with open(tmp_path, "rb") as audio_file:
+            # Wrap the file in a tuple to provide a filename metadata to the multipart request
+            # This helps OpenAI's API detect the format from the extension
+            file_to_send = (f"recording{suffix}", audio_file, audio.content_type)
+            
             transcription = openai_client.audio.transcriptions.create(
                 model="whisper-1",
-                file=audio_file,
+                file=file_to_send,
                 language="ro"
             )
         transcript = transcription.text.strip()
+        print(f"DEBUG: Transcript successful: '{transcript}'")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
     finally:
