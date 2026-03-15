@@ -468,7 +468,7 @@ async def voice_search(audio: UploadFile = File(...)):
             detail="OpenAI API key is not configured. Set OPENAI_API_KEY in .env"
         )
 
-    # 1. Save uploaded audio to a temp file (Whisper API needs a file-like object)
+    # 1. Save uploaded audio to a recordings folder (Whisper API needs a file-like object)
     try:
         print(f"DEBUG: Received audio file: {audio.filename}, content_type: {audio.content_type}")
         content = await audio.read()
@@ -496,13 +496,22 @@ async def voice_search(audio: UploadFile = File(...)):
             suffix = mime_to_ext.get(audio.content_type, "")
         if not suffix:
             suffix = ".m4a"  # Expo records m4a by default
-        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-            tmp.write(content)
-            tmp_path = tmp.name
-            print(f"DEBUG: Saved to temp file: {tmp_path}")
+        
+        # Save permanently to recordings folder
+        recordings_dir = os.path.join(os.path.dirname(__file__), "recordings")
+        os.makedirs(recordings_dir, exist_ok=True)
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = f"voice_{timestamp}{suffix}"
+        perm_path = os.path.join(recordings_dir, filename)
+        
+        with open(perm_path, "wb") as f:
+            f.write(content)
+        
+        print(f"DEBUG: Saved to recordings file: {perm_path}")
 
         # 2. Transcribe with Whisper (Explicitly passing the filename for format detection)
-        with open(tmp_path, "rb") as audio_file:
+        with open(perm_path, "rb") as audio_file:
             # Wrap the file in a tuple to provide a filename metadata to the multipart request
             # This helps OpenAI's API detect the format from the extension
             file_to_send = (f"recording{suffix}", audio_file, audio.content_type)
@@ -513,13 +522,38 @@ async def voice_search(audio: UploadFile = File(...)):
                 language="ro"
             )
         transcript = transcription.text.strip()
+        print(f"DEBUG: Original transcript: '{transcript}'")
+        
+        # Simple post-processing for Romanian numbers often found in place names
+        # e.g., "șapte sute" -> "700"
+        # We normalize some common diacritic variants for better matching
+        normalized_transcript = transcript.lower().replace("ş", "ș").replace("ţ", "ț")
+        
+        romanian_numbers = {
+            "șapte sute": "700",
+            "nouă sute": "900",
+            "sute": "00",
+            "una": "1",
+            "două": "2",
+            "trei": "3",
+            "patru": "4",
+            "cinci": "5",
+            "șase": "6",
+            "șapte": "7",
+            "opt": "8",
+            "nouă": "9",
+            "zece": "10",
+        }
+        
+        processed_transcript = normalized_transcript
+        for word, num in romanian_numbers.items():
+            processed_transcript = processed_transcript.replace(word, num)
+            
+        print(f"DEBUG: Processed transcript: '{processed_transcript}'")
         print(f"DEBUG: Transcript successful: '{transcript}'")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
-    finally:
-        # Clean up temp file
-        if 'tmp_path' in locals():
-            os.unlink(tmp_path)
+    # No cleanup here to keep the files
 
     # 3. Geocode the transcript using Nominatim (biased toward Romania)
     location = None
@@ -527,7 +561,7 @@ async def voice_search(audio: UploadFile = File(...)):
         geo_response = http_requests.get(
             "https://nominatim.openstreetmap.org/search",
             params={
-                "q": transcript,
+                "q": processed_transcript,
                 "format": "json",
                 "limit": 1,
                 "countrycodes": "ro",

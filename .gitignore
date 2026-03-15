@@ -22,5 +22,6 @@ build/
 Thumbs.db
 
 .vscode/
-backend_api/assets/demo3.mp4
 backend_api/test_capture_output.jpg
+backend_api/assets
+backend_api/recordings
