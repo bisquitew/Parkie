@@ -6,3 +6,5 @@ python-dotenv
 passlib[bcrypt]
 requests
 opencv-python-headless
+openai
+python-multipart

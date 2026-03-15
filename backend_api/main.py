@@ -1,7 +1,9 @@
 import os
 import cv2
 import base64
-from fastapi import FastAPI, HTTPException, Query
+import tempfile
+import requests as http_requests
+from fastapi import FastAPI, HTTPException, Query, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, EmailStr
 from supabase import create_client, Client
@@ -9,6 +11,7 @@ from typing import List, Dict, Optional
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 from passlib.context import CryptContext
+from openai import OpenAI
 
 # Load environment variables from .env file
 load_dotenv()
@@ -33,6 +36,10 @@ if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
     raise ValueError("Missing SUPABASE_URL or SUPABASE_SERVICE_KEY environment variables.")
 
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+
+# Initialize OpenAI client for Whisper
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+openai_client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
 
 # Hashing context for passwords
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -410,6 +417,76 @@ async def get_lot_config(lot_id: str):
         raise HTTPException(status_code=400, detail="Lot configuration is incomplete.")
 
     return config
+
+# --- Voice Search Endpoint ---
+
+@app.post("/search/voice")
+async def voice_search(audio: UploadFile = File(...)):
+    """
+    Accepts an audio file, transcribes it using OpenAI Whisper (Romanian),
+    and geocodes the spoken place name using Nominatim.
+    Returns the transcript and location coordinates for the frontend
+    to find nearby parking lots.
+    """
+    if not openai_client:
+        raise HTTPException(
+            status_code=500,
+            detail="OpenAI API key is not configured. Set OPENAI_API_KEY in .env"
+        )
+
+    # 1. Save uploaded audio to a temp file (Whisper API needs a file-like object)
+    try:
+        suffix = os.path.splitext(audio.filename or ".wav")[1]
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+            content = await audio.read()
+            tmp.write(content)
+            tmp_path = tmp.name
+
+        # 2. Transcribe with Whisper
+        with open(tmp_path, "rb") as audio_file:
+            transcription = openai_client.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio_file,
+                language="ro"
+            )
+        transcript = transcription.text.strip()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
+    finally:
+        # Clean up temp file
+        if 'tmp_path' in locals():
+            os.unlink(tmp_path)
+
+    # 3. Geocode the transcript using Nominatim (biased toward Romania)
+    location = None
+    try:
+        geo_response = http_requests.get(
+            "https://nominatim.openstreetmap.org/search",
+            params={
+                "q": transcript,
+                "format": "json",
+                "limit": 1,
+                "countrycodes": "ro",
+                "accept-language": "ro"
+            },
+            headers={"User-Agent": "Parkie/1.0"},
+            timeout=5
+        )
+        geo_data = geo_response.json()
+        if geo_data:
+            location = {
+                "name": geo_data[0].get("display_name", transcript),
+                "latitude": float(geo_data[0]["lat"]),
+                "longitude": float(geo_data[0]["lon"])
+            }
+    except Exception:
+        # Geocoding is best-effort; if it fails we still return the transcript
+        pass
+
+    return {
+        "transcript": transcript,
+        "location": location
+    }
 
 # Root endpoint for basic health check
 @app.get("/")

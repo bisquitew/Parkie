@@ -16,6 +16,7 @@ This FastAPI service acts as the "glue" between the **AI Vision** component (det
    ```env
    SUPABASE_URL=your_project_url
    SUPABASE_SERVICE_KEY=your_service_role_key
+   OPENAI_API_KEY=your_openai_api_key
    ```
 
 3. **Run the Server:**
@@ -85,9 +86,30 @@ This FastAPI service acts as the "glue" between the **AI Vision** component (det
 - **Query Params:** `verified` (bool, default: true)
 - **Logic:** Partially updates the lot to set its verification status.
 
-### 13. Get Lot Configuration (`GET /lots/{lot_id}/config`)
+### 14. Get Lot Configuration (`GET /lots/{lot_id}/config`)
 **Used by:** `ai_vision` script.
 - **Response:** Returns `camera_url` and `slots_data`.
+
+### 15. Voice Search (`POST /search/voice`)
+**Used by:** Mobile App (hands-free voice search).
+- **Content-Type:** `multipart/form-data`
+- **Form Field:** `audio` — an audio file (.mp3, .wav, .m4a, etc.)
+- **Logic:**
+  1. Transcribes the audio using OpenAI Whisper (`language="ro"`).
+  2. Geocodes the spoken place name via Nominatim (biased to Romania).
+- **Response:**
+  ```json
+  {
+    "transcript": "Piața 700",
+    "location": {
+      "name": "Piața 700, Timișoara, Romania",
+      "latitude": 45.7489,
+      "longitude": 21.2087
+    }
+  }
+  ```
+  If geocoding fails, `location` will be `null`.
+- **Env Requirement:** `OPENAI_API_KEY` must be set in `.env`.
 
 ---
 
