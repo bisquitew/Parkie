@@ -87,7 +87,7 @@ export default function VoiceSearchBar({ onSearchComplete }) {
         method: 'POST',
         body: formData,
         headers: {
-          'Content-Type': 'multipart/form-data',
+          'ngrok-skip-browser-warning': 'true',
         },
       });
 
