@@ -19,14 +19,17 @@
       "bundleIdentifier": "com.bisquitew.parkie",
       "infoPlist": {
         "NSLocationWhenInUseUsageDescription": "Parkie needs your location to find parking spots near you.",
-        "NSMicrophoneUsageDescription": "Parkie needs access to your microphone for voice commands."
+        "NSMicrophoneUsageDescription": "Parkie needs access to your microphone for voice commands.",
+        "UIFileSharingEnabled": true,
+        "LSSupportsOpeningDocumentsInPlace": true
       }
     },
     "web": {
       "favicon": "./assets/favicon.png"
     },
     "plugins": [
-      "expo-audio"
+      "expo-audio",
+      "expo-sharing"
     ]
   }
 }

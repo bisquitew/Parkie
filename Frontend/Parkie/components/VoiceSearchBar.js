@@ -74,12 +74,11 @@ export default function VoiceSearchBar({ onSearchComplete }) {
     try {
       await recorder.stop();
       const uri = recorder.uri;
-      console.log('Recording stopped at', uri);
-
+      
       const formData = new FormData();
       formData.append('audio', {
         uri,
-        type: 'audio/mp4',
+        type: 'audio/m4a',
         name: 'recording.m4a',
       });
 
