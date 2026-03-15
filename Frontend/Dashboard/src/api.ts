@@ -2,7 +2,8 @@ const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://undateable-la
 
 export const api = {
   async post(endpoint: string, data: any) {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const url = `${API_BASE_URL.replace(/\/$/, '')}${endpoint}`;
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -24,7 +25,8 @@ export const api = {
   },
 
   async get(endpoint: string) {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const url = `${API_BASE_URL.replace(/\/$/, '')}${endpoint}`;
+    const response = await fetch(url, {
       headers: {
         'ngrok-skip-browser-warning': 'true',
       },
@@ -43,7 +45,8 @@ export const api = {
   },
 
   async put(endpoint: string, data: any) {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const url = `${API_BASE_URL.replace(/\/$/, '')}${endpoint}`;
+    const response = await fetch(url, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -65,7 +68,8 @@ export const api = {
   },
 
   async patch(endpoint: string, params?: Record<string, string>) {
-    const url = new URL(`${API_BASE_URL}${endpoint}`);
+    const baseUrl = API_BASE_URL.replace(/\/$/, '');
+    const url = new URL(`${baseUrl}${endpoint}`);
     if (params) {
       Object.entries(params).forEach(([key, value]) => url.searchParams.set(key, value));
     }
@@ -89,7 +93,8 @@ export const api = {
   },
 
   async delete(endpoint: string) {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const url = `${API_BASE_URL.replace(/\/$/, '')}${endpoint}`;
+    const response = await fetch(url, {
       method: 'DELETE',
       headers: {
         'ngrok-skip-browser-warning': 'true',
