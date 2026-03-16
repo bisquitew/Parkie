@@ -49,7 +49,7 @@ Parkie uses **computer vision** to detect cars in parking lots from live camera 
 
 ### 📱 Mobile App in Action
 <p align="center">
-  <img src="assets/demo_mobile_app.gif" alt="Parkie Mobile App Demo" width="300" />
+  <img src="showcase/mobile.gif" alt="Parkie Mobile App Demo" width="300" />
 </p>
 
 ### 🖼️ Screenshots
