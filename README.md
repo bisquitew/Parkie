@@ -7,6 +7,11 @@
 <h3 align="center">AI-Powered Smart Parking · Real-Time Availability · Zero Guesswork</h3>
 
 <p align="center">
+  <strong>🏆 Winner: Community Problem Track Award @ ITfest 2026! 🏆</strong><br><br>
+  <img src="assets/diploma.jpg" alt="Community Problem Track Award Diploma" width="600" />
+</p>
+
+<p align="center">
   <em>Find a parking spot before you even get there.</em>
 </p>
 
@@ -24,10 +29,9 @@
 ---
 
 ## ✨ What is Parkie?
-
 Parkie uses **computer vision** to detect cars in parking lots from live camera feeds and shows **real-time availability** on a mobile map — so drivers can find open spots instantly, without circling the block.
 
-```
+```text
 📷 Camera  →  🤖 AI Vision (YOLOv11)  →  ⚡ Backend API  →  📱 Mobile App
                                                           →  🖥️  Dashboard
 ```
@@ -41,9 +45,25 @@ Parkie uses **computer vision** to detect cars in parking lots from live camera 
 
 ---
 
+## 📸 Showcase
+
+### 📱 Mobile App in Action
+<p align="center">
+  <img src="assets/demo_mobile_app.gif" alt="Parkie Mobile App Demo" width="300" />
+</p>
+
+### 🖼️ Screenshots
+<p align="center">
+  <img src="assets/screenshot1.png" alt="Mobile App Map View" width="250" />
+  <img src="assets/screenshot2.png" alt="Lot Details View" width="250" />
+  <img src="assets/screenshot3.png" alt="Admin Dashboard Polygon Editor" width="250" />
+</p>
+
+---
+
 ## 🏗️ Architecture
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────────┐
 │                        PARKIE SYSTEM                            │
 ├──────────────┬──────────────────┬────────────────────────────────┤
@@ -69,7 +89,7 @@ Parkie uses **computer vision** to detect cars in parking lots from live camera 
 
 ## 📂 Project Structure
 
-```
+```text
 unihackers/
 ├── backend_api/          # FastAPI REST API
 │   ├── main.py           # App + all endpoints
@@ -118,7 +138,7 @@ pip install -r requirements.txt
 
 Create a `.env` file:
 ```env
-SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_URL=[https://your-project.supabase.co](https://your-project.supabase.co)
 SUPABASE_SERVICE_KEY=your-service-role-key
 ```
 
@@ -255,7 +275,8 @@ Glassmorphism with `rgba(64, 16, 86, 0.4)` backgrounds and violet borders throug
 
 ## 👥 Team UniHackers
 
-Built with ☕ and 🍜 at **ITfest 2026 Hackathon**. :3 
+Built with ☕ and 🍜 at **ITfest 2026 Hackathon**.
+:3
 
 ---
 
