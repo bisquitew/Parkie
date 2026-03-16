@@ -8,7 +8,7 @@
 
 <p align="center">
   <strong>🏆 Winner: Community Problem Track Award @ ITfest 2026! 🏆</strong><br><br>
-  <img src="assets/diploma.jpg" alt="Community Problem Track Award Diploma" width="600" />
+  <img src="showcase/diploma.jpg" alt="Community Problem Track Award Diploma" width="600" />
 </p>
 
 <p align="center">
@@ -54,9 +54,10 @@ Parkie uses **computer vision** to detect cars in parking lots from live camera 
 
 ### 🖼️ Screenshots
 <p align="center">
-  <img src="assets/screenshot1.png" alt="Mobile App Map View" width="250" />
-  <img src="assets/screenshot2.png" alt="Lot Details View" width="250" />
-  <img src="assets/screenshot3.png" alt="Admin Dashboard Polygon Editor" width="250" />
+  <img src="showcase/screenshot1.png" alt="Mobile App Map View" width="250" />
+  <img src="showcase/screenshot2.png" alt="Lot Details View" width="250" />
+  <img src="showcase/screenshot3.png" alt="Admin Dashboard Polygon Editor" width="250" />
+  <img src="showcase/screenshot4.png" alt="Model Vision" width="250" />
 </p>
 
 ---
