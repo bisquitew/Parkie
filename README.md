@@ -54,10 +54,8 @@ Parkie uses **computer vision** to detect cars in parking lots from live camera 
 
 ### 🖼️ Screenshots
 <p align="center">
-  <img src="showcase/screenshot1.png" alt="Mobile App Map View" width="250" />
-  <img src="showcase/screenshot2.png" alt="Lot Details View" width="250" />
-  <img src="showcase/screenshot3.png" alt="Admin Dashboard Polygon Editor" width="250" />
-  <img src="showcase/screenshot4.png" alt="Model Vision" width="250" />
+  <img src="showcase/admin_plot.png" alt="Admin Dashboard Polygon Editor"/>
+  <img src="showcase/ai_model.png" alt="Model Vision"/>
 </p>
 
 ---
