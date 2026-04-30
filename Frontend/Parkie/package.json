@@ -10,16 +10,24 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
+    "@react-navigation/native": "^7.2.2",
+    "@react-navigation/stack": "^7.8.11",
     "@supabase/supabase-js": "^2.99.1",
     "expo": "^55.0.6",
     "expo-audio": "~55.0.8",
+    "expo-constants": "^55.0.15",
     "expo-file-system": "~55.0.10",
     "expo-location": "~55.1.2",
     "expo-sharing": "~55.0.11",
     "expo-status-bar": "^55.0.4",
     "react": "19.2.0",
     "react-native": "0.83.2",
-    "react-native-maps": "1.26.20"
+    "react-native-dotenv": "^3.4.11",
+    "react-native-gesture-handler": "^2.31.1",
+    "react-native-maps": "1.26.20",
+    "react-native-reanimated": "^4.3.0",
+    "react-native-safe-area-context": "^5.7.0",
+    "react-native-screens": "^4.24.0"
   },
   "private": true,
   "devDependencies": {

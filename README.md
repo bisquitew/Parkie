@@ -89,32 +89,38 @@ Parkie uses **computer vision** to detect cars in parking lots from live camera 
 ## 📂 Project Structure
 
 ```text
-unihackers/
+Parkie/
 ├── backend_api/          # FastAPI REST API
-│   ├── main.py           # App + all endpoints
-│   ├── admin_verify.py   # CLI tool for lot verification
-│   ├── docs.md           # API documentation
+│   ├── app/              # Modular application logic
+│   │   ├── routers/      # auth, lots, vision, voice, admin
+│   │   ├── models/       # Pydantic schemas
+│   │   ├── services/     # Business logic & integrations
+│   │   ├── dependencies/ # Auth & validation dependencies
+│   │   └── config.py     # Pydantic-settings management
+│   ├── tests/            # Pytest suite
+│   ├── Dockerfile        # Containerization
 │   └── requirements.txt
 │
 ├── ai_vision/            # Computer vision pipeline
-│   ├── vision_agent.py   # Production agent (headless)
-│   ├── smart_parking.py  # Local viewer with GUI
-│   ├── select_slots.py   # Interactive slot polygon selector
-│   ├── train_pklot.py    # PKLot dataset training script
+│   ├── utils/            # Shared geometry & math
+│   ├── vision_agent.py   # Production agent with error recovery
+│   ├── config.py         # Centralized configuration
+│   ├── select_slots.py   # Class-based slot selector
 │   └── requirements.txt
 │
 └── Frontend/
-    ├── Parkie/           # Mobile app (Expo / React Native)
-    │   ├── screens/      # HomeScreen
-    │   ├── components/   # GoogleMaps, NearbySearch, ParkingCard...
-    │   ├── lib/          # API service, Supabase client, data transforms
-    │   └── theme/        # Design tokens (dark amethyst theme)
+    ├── Parkie/           # Mobile app (Expo + TypeScript)
+    │   ├── hooks/        # useParkingLots (realtime)
+    │   ├── types/        # Shared TS interfaces
+    │   ├── app.config.js # Dynamic Expo configuration
+    │   └── App.tsx       # React Navigation setup
     │
-    └── Dashboard/        # Web dashboard (Vite / TypeScript)
+    └── Dashboard/        # Web dashboard (Vite + TypeScript)
         └── src/
-            ├── main.ts   # SPA: auth, lots, canvas slot editor
-            ├── api.ts    # API client
-            └── style.css # Styling
+            ├── views/    # Modular views (auth, admin, dashboard, lotEditor)
+            ├── utils/    # DOM helper functions (no innerHTML)
+            ├── state.ts  # Centralized state management
+            └── router.ts # App routing
 ```
 
 ---
@@ -123,75 +129,21 @@ unihackers/
 
 ### Prerequisites
 
-- **Python 3.10+** with `pip`
-- **Node.js 18+** with `npm`
-- **Supabase** project ([supabase.com](https://supabase.com))
-- **ngrok** (for tunneling the backend)
+- **Python 3.11+**
+- **Node.js 20+**
+- **Docker** (optional)
 
-### 1. Backend API
+### One-command Setup
 
-```bash
-cd backend_api
-pip install -r requirements.txt
-```
-
-Create a `.env` file:
-```env
-SUPABASE_URL=[https://your-project.supabase.co](https://your-project.supabase.co)
-SUPABASE_SERVICE_KEY=your-service-role-key
-```
-
-Start the server:
-```bash
-uvicorn main:app --reload --port 8000
-```
-
-> 📖 Swagger docs available at `http://localhost:8000/docs`
-
-### 2. AI Vision Agent
+Use the root **Makefile** for common tasks:
 
 ```bash
-cd ai_vision
-pip install -r requirements.txt
+make backend     # Start FastAPI (reload mode)
+make vision      # Start AI Agent
+make mobile      # Start Expo
+make dashboard   # Start Web Dashboard
+make test        # Run all tests
 ```
-
-Create a `.env` file:
-```env
-BACKEND_URL=http://localhost:8000
-LOT_ID=your-lot-uuid
-```
-
-Run the agent:
-```bash
-# Production (headless, reports to backend)
-python vision_agent.py --video assets/demo_video.mp4
-
-# With debug GUI
-python vision_agent.py --video assets/demo_video.mp4 --debug
-
-# Define parking slots first (interactive)
-python select_slots.py --video assets/demo_video.mp4
-```
-
-### 3. Mobile App (Parkie)
-
-```bash
-cd Frontend/Parkie
-npm install
-npx expo start
-```
-
-> Update `config/api.js` with your backend URL (ngrok or local).
-
-### 4. Web Dashboard
-
-```bash
-cd Frontend/Dashboard
-npm install
-npm run dev
-```
-
-> Update `VITE_API_BASE_URL` in `.env` or the fallback in `src/api.ts`.
 
 ---
 

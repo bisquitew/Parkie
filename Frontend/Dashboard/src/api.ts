@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://undateable-lashawnda-unnectareous.ngrok-free.dev';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 export const api = {
   async post(endpoint: string, data: any) {

@@ -2,9 +2,12 @@ fastapi
 uvicorn
 supabase
 pydantic[email]
+pydantic-settings
 python-dotenv
 passlib[bcrypt]
+python-jose[cryptography]
 requests
 opencv-python-headless
 openai
 python-multipart
+loguru
