@@ -1,4 +1,11 @@
+import { state } from './state';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
+
+function authHeaders(): Record<string, string> {
+  const token = state.getToken();
+  return token ? { 'Authorization': `Bearer ${token}` } : {};
+}
 
 export const api = {
   async post(endpoint: string, data: any) {
@@ -8,6 +15,7 @@ export const api = {
       headers: {
         'Content-Type': 'application/json',
         'ngrok-skip-browser-warning': 'true',
+        ...authHeaders(),
       },
       body: JSON.stringify(data),
     });
@@ -29,6 +37,7 @@ export const api = {
     const response = await fetch(url, {
       headers: {
         'ngrok-skip-browser-warning': 'true',
+        ...authHeaders(),
       },
     });
     if (!response.ok) {
@@ -51,6 +60,7 @@ export const api = {
       headers: {
         'Content-Type': 'application/json',
         'ngrok-skip-browser-warning': 'true',
+        ...authHeaders(),
       },
       body: JSON.stringify(data),
     });
@@ -77,6 +87,7 @@ export const api = {
       method: 'PATCH',
       headers: {
         'ngrok-skip-browser-warning': 'true',
+        ...authHeaders(),
       },
     });
     if (!response.ok) {
@@ -98,6 +109,7 @@ export const api = {
       method: 'DELETE',
       headers: {
         'ngrok-skip-browser-warning': 'true',
+        ...authHeaders(),
       },
     });
     if (!response.ok) {
@@ -114,30 +126,27 @@ export const api = {
   },
 
   async captureFrame(cameraUrl: string) {
-    const data = await this.post('/capture_frame', { camera_url: cameraUrl });
+    const data = await this.post('/vision/capture_frame', { camera_url: cameraUrl });
     return data.image;
   },
 
-  async saveLotSetup(lotId: string, cameraUrl: string, slotsData: number[][]) {
-    return this.post(`/lots/${lotId}/setup`, {
-      camera_url: cameraUrl,
-      slots_data: slotsData
-    });
+  async saveLotSetup(lotId: string, payload: any) {
+    return this.put(`/lots/${lotId}/setup`, payload);
   },
 
   async getPendingLots() {
-    return this.get('/lots/pending');
+    return this.get('/admin/lots/pending');
   },
 
   async verifyLot(lotId: string) {
-    return this.patch(`/lots/${lotId}/verify`, { verified: 'true' });
+    return this.patch(`/admin/lots/${lotId}/verify`, { verified: 'true' });
   },
 
   async unverifyLot(lotId: string) {
-    return this.patch(`/lots/${lotId}/verify`, { verified: 'false' });
+    return this.patch(`/admin/lots/${lotId}/verify`, { verified: 'false' });
   },
 
   async rejectLot(lotId: string) {
-    return this.delete(`/lots/${lotId}`);
+    return this.delete(`/admin/lots/${lotId}`);
   }
 };

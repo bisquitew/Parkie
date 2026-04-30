@@ -115,14 +115,14 @@ export const apiService = {
 
   /**
    * Update lot with detected cars
-   * POST /update_lot
+   * POST /vision/update_lot
    * Payload: {lot_id, detected_cars}
    * Returns: {status, lot_id, available_spots, status_color}
    */
   updateLot: async (lotId, detectedCars) => {
     try {
       return await retryFetch(() =>
-        fetch(`${API_CONFIG.BASE_URL}/update_lot`, {
+        fetch(`${API_CONFIG.BASE_URL}/vision/update_lot`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

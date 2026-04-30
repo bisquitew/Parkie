@@ -19,4 +19,7 @@ class VisionConfig:
     
     RETRY_BACKOFF = 5       # seconds to wait before retrying camera
     
+    DEFAULT_MODEL = "yolov8s.pt"
+    SLOTS_FILE = os.getenv("SLOTS_FILE", "assets/parking_slots.json")
+    
 config = VisionConfig()

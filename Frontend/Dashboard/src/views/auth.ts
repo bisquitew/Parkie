@@ -32,9 +32,12 @@ export function renderAuth() {
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
-      const user = await api.post('/login', { email: emailInput.value, password: passwordInput.value });
-      state.setUser(user);
-      navigate(user.role === 'admin' ? 'admin' : 'dashboard');
+      const response = await api.post('/auth/login', { email: emailInput.value, password: passwordInput.value });
+      state.setUser({
+        ...response.user,
+        access_token: response.access_token
+      });
+      navigate(response.user.role === 'admin' ? 'admin' : 'dashboard');
     } catch (err: any) {
       alert(err.message);
     }
@@ -68,13 +71,21 @@ function renderRegister(container: HTMLElement) {
   registerForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     try {
-      const user = await api.post('/register', { 
+      await api.post('/auth/register', { 
         name: nameInput.value, 
         email: emailInput.value, 
         password: passwordInput.value 
       });
-      state.setUser(user);
-      navigate(user.role === 'admin' ? 'admin' : 'dashboard');
+      // Login after register
+      const response = await api.post('/auth/login', { 
+        email: emailInput.value, 
+        password: passwordInput.value 
+      });
+      state.setUser({
+        ...response.user,
+        access_token: response.access_token
+      });
+      navigate(response.user.role === 'admin' ? 'admin' : 'dashboard');
     } catch (err: any) {
       alert(err.message);
     }

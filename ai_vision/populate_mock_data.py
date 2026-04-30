@@ -43,22 +43,32 @@ def run_population():
     print(f"Checking/Registering mock owner: {owner_email}...")
     try:
         # Try login first to get existing ID
-        login_resp = requests.post(f"{BACKEND_URL}/login", json={
+        login_resp = requests.post(f"{BACKEND_URL}/auth/login", json={
             "email": owner_email,
             "password": "mockpassword123"
         })
         if login_resp.status_code == 200:
-            owner_id = login_resp.json()["user_id"]
+            resp_data = login_resp.json()
+            owner_id = resp_data["user"]["user_id"]
+            token = resp_data.get("access_token")
             print(f"✅ Found existing owner ID: {owner_id}")
         else:
             # Register if not found
-            reg_resp = requests.post(f"{BACKEND_URL}/register", json={
+            reg_resp = requests.post(f"{BACKEND_URL}/auth/register", json={
                 "name": "Timișoara Admin",
                 "email": owner_email,
                 "password": "mockpassword123"
             })
             owner_id = reg_resp.json()["user_id"]
             print(f"✅ Created new owner ID: {owner_id}")
+            # Get token after register
+            login_resp = requests.post(f"{BACKEND_URL}/auth/login", json={
+                "email": owner_email,
+                "password": "mockpassword123"
+            })
+            token = login_resp.json().get("access_token")
+
+        headers = {"Authorization": f"Bearer {token}"} if token else {}
     except Exception as e:
         print(f"❌ Owner setup failed: {e}.")
         return
@@ -92,10 +102,10 @@ def run_population():
                     "slots_data": generate_dummy_slots(loc["cap"]),
                     "capacity": loc["cap"]
                 }
-                create_resp = requests.post(f"{BACKEND_URL}/lots", json=payload)
+                create_resp = requests.post(f"{BACKEND_URL}/lots", json=payload, headers=headers)
                 lid = create_resp.json()["lot_id"]
                 # Verify immediately
-                requests.patch(f"{BACKEND_URL}/lots/{lid}/verify", params={"verified": True})
+                requests.patch(f"{BACKEND_URL}/admin/lots/{lid}/verify", params={"verified": True}, headers=headers)
             except Exception as e:
                 print(f"⚠️ Failed to create {name}: {e}")
                 continue
@@ -153,7 +163,7 @@ def run_population():
             
             # 3. Report to backend
             try:
-                requests.post(f"{BACKEND_URL}/update_lot", json={
+                requests.post(f"{BACKEND_URL}/vision/update_lot", json={
                     "lot_id": lot["id"],
                     "detected_cars": lot["current"]
                 })

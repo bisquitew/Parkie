@@ -21,7 +21,7 @@ This FastAPI service acts as the "glue" between the **AI Vision** component (det
 
 3. **Run the Server:**
    ```bash
-   uvicorn main:app --reload
+   uvicorn app.main:app --reload
    ```
    *The API will be available at: `http://localhost:8000`*
    *Interactive Swagger docs: `http://localhost:8000/docs`*
@@ -30,17 +30,17 @@ This FastAPI service acts as the "glue" between the **AI Vision** component (det
 
 ## 📡 Endpoints
 
-### 1. User Registration (`POST /register`)
+### 1. User Registration (`POST /auth/register`)
 **Used by:** Lot Owners.
 - **Payload:** `{ "name": "...", "email": "...", "password": "..." }`
 - **Logic:** Hashes the password and creates a new user in the `users` table.
 
-### 2. User Login (`POST /login`)
+### 2. User Login (`POST /auth/login`)
 **Used by:** Lot Owners.
 - **Payload:** `{ "email": "...", "password": "..." }`
-- **Logic:** Verifies the hashed password and returns the `user_id`.
+- **Logic:** Verifies the hashed password and returns a JWT `access_token` and user profile.
 
-### 3. Update Parking Data (`POST /update_lot`)
+### 3. Update Parking Data (`POST /vision/update_lot`)
 **Used by:** `ai_vision` component.
 - **Payload:** `{ "lot_id": "...", "detected_cars": 15 }`
 
@@ -49,9 +49,10 @@ This FastAPI service acts as the "glue" between the **AI Vision** component (det
 - **Query Params:** `include_unverified` (bool, default: false)
 - **Response:** Returns **verified lots** by default.
 
-### 5. Get Owner's Lots (`GET /my_lots/{owner_id}`)
+### 5. Get Owner's Lots (`GET /lots/my`)
 **Used by:** Web Dashboard.
-- **Response:** Returns all lots belonging to a specific owner. Handles invalid UUIDs with a 400 error.
+- **Auth:** Requires `Authorization: Bearer <token>`
+- **Response:** Returns all lots belonging to the authenticated owner.
 
 ### 6. Get Lot Colors Only (`GET /lots/colors`)
 **Used by:** `mobile_app` (Optimized polling).
@@ -63,35 +64,35 @@ This FastAPI service acts as the "glue" between the **AI Vision** component (det
 
 ### 8. Create/Register Parking Lot (`POST /lots`)
 **Used by:** Web Dashboard.
+- **Auth:** Requires `Authorization: Bearer <token>`
 - **Payload:** Includes `owner_id`, `name`, `latitude`, `longitude`, `camera_url`, `slots_data`, and optional `capacity`.
 
 ### 9. Setup/Update Existing Lot (`PUT /lots/{lot_id}/setup`)
 **Used by:** Web Dashboard.
 - **Method:** `PUT`
+- **Auth:** Requires `Authorization: Bearer <token>`
 - **Logic:** Replaces the configuration of an existing lot and resets `is_verified` to `false`.
 
-### 10. Capture Camera Frame (`POST /capture_frame`)
+### 10. Capture Camera Frame (`POST /vision/capture_frame`)
 **Used by:** Admin Dashboard (Setup phase).
 - **Payload:** `{ "camera_url": "..." }`
 - **Logic:** Connects to the camera stream, grabs exactly one frame, and returns it as a base64-encoded JPEG.
 
-### 11. Lot Configuration Setup (`POST /lots/{lot_id}/setup`)
-**Used by:** Admin Dashboard (Setup phase).
-- **Payload:** `{ "camera_url": "...", "slots_data": [[...], [...]] }`
-- **Logic:** Updates the `camera_url` and `slots_data` for a specific lot and recalculates `capacity`.
-
-### 12. Admin: Verify Parking Lot (`PATCH /lots/{lot_id}/verify`)
+### 11. Admin: Verify Parking Lot (`PATCH /admin/lots/{lot_id}/verify`)
 **Used by:** Admin Dashboard / Admin Script.
 - **Method:** `PATCH`
+- **Auth:** Requires Admin JWT.
 - **Query Params:** `verified` (bool, default: true)
 - **Logic:** Partially updates the lot to set its verification status.
 
-### 13. Admin: Get Pending Lots (`GET /lots/pending`)
+### 12. Admin: Get Pending Lots (`GET /admin/lots/pending`)
 **Used by:** Admin Dashboard.
+- **Auth:** Requires Admin JWT.
 - **Response:** Returns all unverified parking lots awaiting admin review.
 
-### 14. Admin: Reject/Delete Lot (`DELETE /lots/{lot_id}`)
+### 13. Admin: Reject/Delete Lot (`DELETE /admin/lots/{lot_id}`)
 **Used by:** Admin Dashboard.
+- **Auth:** Requires Admin JWT.
 - **Logic:** Permanently deletes a parking lot (admin rejection).
 
 ### 14. Get Lot Configuration (`GET /lots/{lot_id}/config`)

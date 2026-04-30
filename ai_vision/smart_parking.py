@@ -5,11 +5,12 @@ import argparse
 import numpy as np
 import time
 from ultralytics import YOLO
+from .config import config
 from .utils.geometry import car_in_slot, denormalize_slots
 
 # SETTINGS
-SLOTS_FILE = "assets/parking_slots.json"
-DEFAULT_MODEL = "yolov8s.pt"
+SLOTS_FILE = config.SLOTS_FILE
+DEFAULT_MODEL = config.DEFAULT_MODEL
 
 COCO_VEHICLE_CLASSES = [2, 3, 5, 7]
 

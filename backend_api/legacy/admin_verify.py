@@ -30,7 +30,7 @@ def list_pending_lots():
 
 def verify_lot(lot_id):
     try:
-        response = requests.patch(f"{API_BASE_URL}/lots/{lot_id}/verify?verified=true")
+        response = requests.patch(f"{API_BASE_URL}/admin/lots/{lot_id}/verify?verified=true")
         response.raise_for_status()
         data = response.json()
         print(f"\n✅ Successfully verified lot: {data['lot_id']}")

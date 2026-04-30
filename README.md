@@ -151,18 +151,19 @@ make test        # Run all tests
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/register` | Create a lot owner account |
-| `POST` | `/login` | Authenticate and get user profile |
+| `POST` | `/auth/register` | Create a lot owner account |
+| `POST` | `/auth/login` | Authenticate and get user profile (JWT) |
 | `GET` | `/lots` | All verified lots (mobile app) |
+| `GET` | `/lots/my` | Owner's lots (dashboard, JWT auth) |
 | `GET` | `/lots/colors` | Lightweight color-only updates |
 | `GET` | `/lots/{id}` | Single lot details |
 | `GET` | `/lots/{id}/config` | Camera URL + slot polygons (AI agent) |
-| `GET` | `/my_lots/{owner_id}` | Owner's lots (dashboard) |
-| `POST` | `/lots` | Register a new parking lot |
-| `POST` | `/lots/{id}/setup` | Save slot polygon configuration |
-| `POST` | `/update_lot` | Update occupancy (AI agent → backend) |
-| `POST` | `/capture_frame` | Grab a camera frame as base64 |
-| `PATCH` | `/lots/{id}/verify` | Admin: verify/reject a lot |
+| `POST` | `/lots` | Register a new parking lot (JWT auth) |
+| `PUT` | `/lots/{id}/setup` | Save slot polygon configuration (JWT auth) |
+| `POST` | `/vision/update_lot` | Update occupancy (AI agent → backend) |
+| `POST` | `/vision/capture_frame` | Grab a camera frame as base64 |
+| `PATCH` | `/admin/lots/{id}/verify` | Admin: verify/reject a lot (Admin auth) |
+| `GET` | `/admin/lots/pending` | Admin: get all pending lots (Admin auth) |
 
 ---
 

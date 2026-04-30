@@ -11,3 +11,6 @@ opencv-python-headless
 openai
 python-multipart
 loguru
+pytest
+pytest-asyncio
+httpx

@@ -3,6 +3,7 @@ import json
 import os
 import argparse
 import numpy as np
+from .config import config
 
 class SlotSelector:
     def __init__(self, video_path):
@@ -102,7 +103,7 @@ class SlotSelector:
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--video", default="assets/demo_video.mp4", help="Path to video source")
-    parser.add_argument("--output", default="assets/parking_slots.json", help="Output JSON path")
+    parser.add_argument("--output", default=config.SLOTS_FILE, help="Output JSON path")
     args = parser.parse_args()
 
     selector = SlotSelector(args.video)

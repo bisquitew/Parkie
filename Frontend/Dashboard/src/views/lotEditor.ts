@@ -205,7 +205,12 @@ function initCanvas(
 
     try {
       if (!state.currentLot) return;
-      await api.saveLotSetup(state.currentLot.id, cameraUrl, slots_data);
+      await api.saveLotSetup(state.currentLot.id, {
+        ...state.currentLot,
+        camera_url: cameraUrl,
+        slots_data: slots_data,
+        capacity: slots_data.length
+      });
       alert("Configuration saved successfully!");
       navigate(state.currentUser?.role === 'admin' ? 'admin' : 'dashboard');
     } catch (err: any) {

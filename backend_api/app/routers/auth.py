@@ -46,4 +46,13 @@ async def login(payload: UserLogin):
     access_token = create_access_token(
         data={"sub": user["id"], "role": user.get("role", "owner")}
     )
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token, 
+        "token_type": "bearer",
+        "user": {
+            "user_id": user["id"],
+            "name": user["name"],
+            "email": user["email"],
+            "role": user.get("role", "owner")
+        }
+    }
