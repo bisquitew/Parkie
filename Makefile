@@ -13,5 +13,5 @@ dashboard:
 	cd Frontend/Dashboard && npm run dev
 
 test:
-	cd backend_api && pytest
-	cd Frontend/Dashboard && npm test
+	(cd backend_api && pytest)
+	(cd Frontend/Dashboard && npm run test)

@@ -1,10 +1,11 @@
 import { API_CONFIG } from '../config/api';
+import { ParkingLot, LotStatusUpdateResponse } from '../types/parking';
 
 /**
  * Retry wrapper for API calls
  * Automatically retries up to MAX_RETRY_ATTEMPTS times
  */
-const retryFetch = async (fetchFn, maxAttempts = API_CONFIG.MAX_RETRIES || 3) => {
+const retryFetch = async <T>(fetchFn: () => Promise<Response>, maxAttempts = API_CONFIG.MAX_RETRIES || 3): Promise<T> => {
   let lastError;
   
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
@@ -13,8 +14,8 @@ const retryFetch = async (fetchFn, maxAttempts = API_CONFIG.MAX_RETRIES || 3) =>
       if (!response.ok) {
         throw new Error(`API Error: ${response.status}`);
       }
-      return await response.json();
-    } catch (error) {
+      return await response.json() as T;
+    } catch (error: any) {
       lastError = error || new Error('Unknown error during fetch');
       console.warn(`Attempt ${attempt}/${maxAttempts} failed:`, lastError.message);
       
@@ -35,17 +36,16 @@ export const apiService = {
    * Health check - Confirm API is online
    * GET /
    */
-  healthCheck: async () => {
+  healthCheck: async (): Promise<any> => {
     try {
       return await retryFetch(() =>
         fetch(`${API_CONFIG.BASE_URL}/`, {
           headers: {
             'ngrok-skip-browser-warning': 'true',
-          },
-          timeout: API_CONFIG.TIMEOUT
+          }
         })
       );
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Health check failed: ${error?.message || 'Unknown error'}`);
     }
   },
@@ -55,9 +55,9 @@ export const apiService = {
    * GET /lots
    * Returns: [{id, name, capacity, available_spots, last_updated, status_color}]
    */
-  fetchAllLots: async () => {
+  fetchAllLots: async (): Promise<ParkingLot[]> => {
     try {
-      return await retryFetch(() =>
+      return await retryFetch<ParkingLot[]>(() =>
         fetch(`${API_CONFIG.BASE_URL}/lots`, {
           method: 'GET',
           headers: {
@@ -66,7 +66,7 @@ export const apiService = {
           }
         })
       );
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to fetch lots: ${error?.message || 'Unknown error'}`);
     }
   },
@@ -76,9 +76,9 @@ export const apiService = {
    * GET /lots/colors
    * Returns: [{id, status_color}]
    */
-  fetchLotColors: async () => {
+  fetchLotColors: async (): Promise<Pick<ParkingLot, 'id' | 'status_color'>[]> => {
     try {
-      return await retryFetch(() =>
+      return await retryFetch<Pick<ParkingLot, 'id' | 'status_color'>[]>(() =>
         fetch(`${API_CONFIG.BASE_URL}/lots/colors`, {
           method: 'GET',
           headers: {
@@ -87,7 +87,7 @@ export const apiService = {
           }
         })
       );
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to fetch lot colors: ${error?.message || 'Unknown error'}`);
     }
   },
@@ -97,9 +97,9 @@ export const apiService = {
    * GET /lots/{lotId}
    * Returns: {id, name, capacity, available_spots, last_updated, status_color}
    */
-  fetchLotDetails: async (lotId) => {
+  fetchLotDetails: async (lotId: string): Promise<ParkingLot> => {
     try {
-      return await retryFetch(() =>
+      return await retryFetch<ParkingLot>(() =>
         fetch(`${API_CONFIG.BASE_URL}/lots/${lotId}`, {
           method: 'GET',
           headers: {
@@ -108,7 +108,7 @@ export const apiService = {
           }
         })
       );
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to fetch lot details: ${error?.message || 'Unknown error'}`);
     }
   },
@@ -119,9 +119,9 @@ export const apiService = {
    * Payload: {lot_id, detected_cars}
    * Returns: {status, lot_id, available_spots, status_color}
    */
-  updateLot: async (lotId, detectedCars) => {
+  updateLot: async (lotId: string, detectedCars: number): Promise<LotStatusUpdateResponse> => {
     try {
-      return await retryFetch(() =>
+      return await retryFetch<LotStatusUpdateResponse>(() =>
         fetch(`${API_CONFIG.BASE_URL}/vision/update_lot`, {
           method: 'POST',
           headers: {
@@ -134,7 +134,7 @@ export const apiService = {
           })
         })
       );
-    } catch (error) {
+    } catch (error: any) {
       throw new Error(`Failed to update lot: ${error?.message || 'Unknown error'}`);
     }
   }
