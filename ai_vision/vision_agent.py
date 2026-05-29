@@ -116,6 +116,10 @@ def main():
         fps = cap.get(cv2.CAP_PROP_FPS) or 30
         delay = max(1, int(1000 / fps))
 
+        if args.debug:
+            cv2.namedWindow("Vision Agent", cv2.WINDOW_NORMAL)
+            cv2.resizeWindow("Vision Agent", 1024, 576)
+
         try:
             while cap.isOpened():
                 ret, frame = cap.read()
